@@ -161,21 +161,11 @@ int main(void) {
 		// This is the main loop of the program
 		// Prints to stdout, and Python script picks it up.
 		rc_usleep(1000000/PRINT_HZ);
-		printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%1.f,%.1f,%.1f,%.1f\n"
-		,kf.x_est.d[0]
-		,kf.x_est.d[1]
-		,kf.x_est.d[2]
-		,bmp_data.alt_m
-		,acc_lp.newest_output
-		,mpu_data.accel[0]
-		,mpu_data.accel[1]
-		,mpu_data.accel[2]
-		,mpu_data.gyro[0]
-		,mpu_data.gyro[1]
-		,mpu_data.gyro[2]
-		,bmp_data.temp_c
-		,bmp_data.alt_m
-		,bmp_data.pressure_pa);
+		printf("%.1f,%.1f,%.1f,", kf.x_est.d[0], kf.x_est.d[1], kf.x_est.d[2]);
+		printf("%.1f,%.1f,", bmp_data.alt_m, acc_lp.newest_output);
+		printf("%.1f,%.1f,%.1f,", mpu_data.accel[0], mpu_data.accel[1] ,mpu_data.accel[2]);
+		printf("%.1f,%.1f,%.1f,", mpu_data.gyro[0], mpu_data.gyro[1], mpu_data.gyro[2]);
+		printf("%.1f,%.1f,%.1f\n", bmp_data.temp_c, bmp_data.alt_m, bmp_data.pressure_pa);
 		fflush(stdout);
 	}
 
