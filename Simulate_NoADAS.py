@@ -95,7 +95,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, time_re
             return 0
         
     def air_drag(hi, vi, f): #f is the angle
-        return drag_function(vi, f) * air_pressure(hi, rho)/1.225
+        return drag_function(vi, f) * air_pressure(hi, rho)/1.225   # density of air = 1.225
     
     def drag_curve(hi, vi, t): ################New year new me (function)
         if t<=t_start:
