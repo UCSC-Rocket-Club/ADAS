@@ -74,7 +74,7 @@ int main()
                 // do things based on the state
                 if(rc_get_state()==RUNNING){
                         rc_led_set(RC_LED_GREEN, 1);
-                        rc_led_set(RC_LED_RED, 0);
+                        rc_led_set(RC_LED_RED, 0);qq-
                 }
                 else{
                         rc_led_set(RC_LED_GREEN, 0);
