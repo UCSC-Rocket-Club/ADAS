@@ -289,7 +289,7 @@ int rc_motor_free_spin(int motor)
 }
 
 
-int rc_motor_brake(int motor)
+int rc_motor_brake(int motor, double direction)
 {
 	int i;
 

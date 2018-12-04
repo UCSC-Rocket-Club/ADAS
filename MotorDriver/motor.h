@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #define RC_MOTOR_DEFAULT_PWM_FREQ	25000	///< 25kHz
-
+#define ADAS_MOTOR_HARDCODE_HACK 4 // motor channel that is hard coded to use gpio pin
 
 /**
  * @brief      Initializes all 4 motors and leaves them in a free-spin (0
@@ -120,11 +120,11 @@ int rc_motor_free_spin(int ch);
  * @brief      Connects the motor terminal pairs together which makes the motor
  * fight against its own back EMF turning it into a brake resisting rotation.
  *
- * @param[in]  ch    The motor channel (1-4) or 0 for all channels.
+ * @param[in]  ch    The motor channel (1-4) or 0 for all channels, the current motor movement direction
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_brake(int ch);
+int rc_motor_brake(int ch, double direction);
 
 
 
