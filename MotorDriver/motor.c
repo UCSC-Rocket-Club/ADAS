@@ -12,9 +12,16 @@
 // preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 
+// motor pin definitions
 
-#define MOT_STBY		0,20	//gpio0.20	P9.41
+// direction pin: chip, pin
+#define DIRECTION 3,20
 
+// speed pin: chip, pin
+#define SPEED 3,17
+
+
+// kep track of whether things were initialized
 static int init_flag = 0;
 
 // get the direction (sign) of the input
@@ -36,11 +43,6 @@ int rc_motor_init_freq(int pwm_frequency_hz)
 	int i;
 
 	// set up gpio pins
-	if(unlikely(rc_gpio_init(MOT_STBY, GPIOHANDLE_REQUEST_OUTPUT))){
-		fprintf(stderr,"ERROR in rc_motor_init, failed to set up gpio %d,%d\n", MOT_STBY);
-		return -1;
-	}
-
 	if(unlikely(rc_gpio_init(DIRECTION, GPIOHANDLE_REQUEST_OUTPUT))){
 		fprintf(stderr,"ERROR in rc_motor_init, failed to set up gpio %d,%d for direction\n", DIRECTION);
 		return -1;
@@ -60,11 +62,6 @@ int rc_motor_init_freq(int pwm_frequency_hz)
 		return -1;
 	}
 
-	// make sure standby is off since most users won't use it
-	if(unlikely(rc_gpio_set_value(MOT_STBY,1))){
-		fprintf(stderr,"ERROR in rc_motor_init, can't write to gpio %d,%d\n",MOT_STBY);
-		return -1;
-	}
 	init_flag = 1;
 	return 0;
 }
@@ -76,7 +73,6 @@ int rc_motor_cleanup(void)
 	int i;
 	if(!init_flag) return 0;
 	rc_motor_free_spin(0);
-	rc_gpio_cleanup(MOT_STBY);
 	rc_gpio_cleanup(DIRECTION);
 	rc_gpio_cleanup(SPEED);
 	return 0;

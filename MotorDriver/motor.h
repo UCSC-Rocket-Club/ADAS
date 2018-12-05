@@ -27,14 +27,6 @@ extern "C" {
 #define RC_MOTOR_DEFAULT_PWM_FREQ	25000	///< 25kHz
 
 
-// motor pin definitions
-
-// direction pin: chip, pin
-#define DIRECTION 2,8
-
-// speed pin: chip, pin
-#define SPEED 2,9
-
 // reverse on time in microseconds to stop motor on a dime
 #define BACK_FORCE_TIME 100
 
@@ -105,6 +97,7 @@ int rc_motor_free_spin();
 /**
  * @brief      Pulses the motor in the opposite direction to stop it on a dime.
  * The length of back pulse is defined in microseconds in BACK_FORCE_TIME at top.
+ * Puts motor in free spin after pulse. Effectively locks motor.
  *
  * @param[in]  direction    The current direction and speed of the motor. Will stop this direction
  *
