@@ -6,13 +6,17 @@
  */
 #include <stdio.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
+#include "motor.h" //include adas motor shit
 
 #define MARGIN 5 // margin of postition to stop motor and lock in place
 // function declarations
 void on_pause_press();
 void on_pause_release();
-boolean getDirection(int current, int projected);
 boolean inMargin(int current, int projected);
+
+// fake encoder positions to test functions
+static int fakeProjected = [100,-100,-100];
+static int fakeCurrent = [0,100,-100];
 /**
  * This template contains these critical components
  * - ensure no existing instances are running and make new PID file
@@ -42,8 +46,15 @@ int main()
                 fprintf(stderr,"ERROR: failed to initialize pause button\n");
                 return -1;
         }
+
+        // initialize motor
+        if(adas_motor_init()){
+          fprintf(stderr,"ERROR: failed to initialize motor\n");
+          return -1;
+        }
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
+        rc_moto
         // make PID file to indicate your project is running
         // due to the check made on the call to rc_kill_existing_process() above
         // we can be fairly confident there is no PID file already and we can
@@ -61,46 +72,48 @@ int main()
         printf("hold pause button down for 2 seconds to exit\n");
         // Keep looping until state changes to EXITING
         rc_set_state(RUNNING);
+        int i = 0;
         while(rc_get_state()!=EXITING){
-                if(!inMargin(currentPos, projectedPos)){
-                  directionPin = getDirection(currentPos, projectedPos);
-                  speed = 1;
-                }
-                elseif(inMargin(currentPos, projectedPos)){
-                  boolean needToPulse = pulse(&pulse);
-                  speed = 0;
-                }
 
                 // do things based on the state
                 if(rc_get_state()==RUNNING){
-                        rc_led_set(RC_LED_GREEN, 1);
-                        rc_led_set(RC_LED_RED, 0);qq-
+                  moveMotor(fakeCurrent[i], fakeProjected[i]);
+                  if (i == sizeof(fakeCurrent)/sizeof(fakeCurrent[0])) i = 0;
+                  i++;
                 }
                 else{
                         rc_led_set(RC_LED_GREEN, 0);
                         rc_led_set(RC_LED_RED, 1);
+                        adas_motor_free_spin();
                 }
                 // always sleep at some point
-                rc_usleep(100000);
+                // wait 1/25 sec to mimic refresh rate
+                rc_usleep(40000);
         }
         // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
         rc_led_cleanup();
         rc_button_cleanup();    // stop button handlers
+        adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
         return 0;
 }
 
 /**
- * return the direction the motor should spin in
- * input: the current direction, the  needed direction
- * output: true for clockwise false for counter
-**/
-boolean getDirection(int current, int projected){
-  // if the current position is behind the projected spin clockwise
-  // i.e. will result in a positive difference
-  return !(current - projected > 0);
+ * continuous loop to check position of motor and needed pos
+ * call to move motor or stay in place
+ * @params: current pos of motor, projected pos of motor
+ */
+void moveMotor(int currentPos, int projectedPos){
+  int difference = currentPos - projectedPos;
+  if(!inMargin(difference)){
+    adas_motor_set((double)difference);
+  }
+  elseif(inMargin(difference)){
+    adas_motor_brake((double)difference);
+  }
+
 }
 
 /**
@@ -110,20 +123,6 @@ boolean getDirection(int current, int projected){
 */
 boolean inMargin(int current, int projected){
   return (current - projected < MARGIN && current - projected > -MARGIN )
-}
-
-/*
- * need to pulse motor in opposite direction for a hot sec to stop motor
- * input: pointer to pulse flag
- * output: weather ot not to pulse
-*/
-boolean pulse(int* pulsed){
-  if(*pulsed) {
-    printf("stop that shit")
-    *pulsed = 0
-    return true;
-  }
-  return false;
 }
 
 /**

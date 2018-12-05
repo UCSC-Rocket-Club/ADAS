@@ -17,14 +17,14 @@
  * @{
  */
 
-#ifndef RC_MOTOR_H
-#define RC_MOTOR_H
+#ifndef ADAS_MOTOR_H
+#define ADAS_MOTOR_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define RC_MOTOR_DEFAULT_PWM_FREQ	25000	///< 25kHz
+#define ADAS_MOTOR_DEFAULT_PWM_FREQ	25000	///< 25kHz
 
 
 // reverse on time in microseconds to stop motor on a dime
@@ -40,14 +40,14 @@ extern "C" {
  * @return     0 on success, -1 on failure which is usually due to lack of user
  * permissions to access the gpio and pwm systems.
  */
-int rc_motor_init(void);
+int adas_motor_init(void);
 
 
 /**
- * @brief      Just like rc_motor_init but allows the user to set the pwm
+ * @brief      Just like adas_motor_init but allows the user to set the pwm
  * frequency
  *
- * RC_MOTOR_DEFAULT_PWM_FREQ is a good frequency to start at.
+ * adas_MOTOR_DEFAULT_PWM_FREQ is a good frequency to start at.
  *
  * The pwm is not set up yet but am leaving this here in case we get around to it
  *
@@ -56,7 +56,7 @@ int rc_motor_init(void);
  * @return     0 on success, -1 on failure which is usually due to lack of user
  * permissions to access the gpio and pwm systems.
  */
-int rc_motor_init_freq(int pwm_frequency_hz);
+int adas_motor_init_freq(int pwm_frequency_hz);
 
 
 /**
@@ -65,7 +65,7 @@ int rc_motor_init_freq(int pwm_frequency_hz);
  *
  * @return     0 on success, -1 on failure.
  */
-int rc_motor_cleanup(void);
+int adas_motor_cleanup(void);
 
 
 /**
@@ -77,21 +77,21 @@ int rc_motor_cleanup(void);
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_set(double duty);
+int adas_motor_set(double duty);
 
 
 /**
  * @brief      Puts motor into a zero-throttle state allowing it to spin
  * freely. Due to gear ratio of our motor this also locks it into place.
  * However if the motor is spinning the intertia carries it a bit. To stop
-* motor on a dime call rc_motor_brake()
+* motor on a dime call adas_motor_brake()
  *
  * This is accomplished by putting both motor terminals connected to the
  * h-bridge into a high-impedance state.
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_free_spin();
+int adas_motor_free_spin();
 
 
 /**
@@ -103,7 +103,7 @@ int rc_motor_free_spin();
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_brake(double direction);
+int adas_motor_brake(double direction);
 
 
 
@@ -111,6 +111,6 @@ int rc_motor_brake(double direction);
 }
 #endif
 
-#endif // RC_MOTOR_H
+#endif // adas_MOTOR_H
 
 /** @} end group Motor */
