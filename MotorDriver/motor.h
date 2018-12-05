@@ -1,14 +1,14 @@
 /**
  * <rc/motor.h>
  *
- * @brief      Control 4 DC motor Channels
+ * @brief      Control our ADAS motor
  *
- * The robotics cape can drive 4 DC motors bidirectionally powered only from a
- * 2-cell lithium battery pack connected to the cape. The motors will not draw
- * power from USB or the 9-18v DC Jack. Each channel can support 1.2A continuous
- * and the user must be careful to choose motors which will not exceed this
- * rating when stalled. Each channel is broken out on an independent 2-pin JST
- * ZH connector.
+ * This code modifies the origional motor.c code for the robot
+ * control library. Adapted for our purposes. Adapted to use the
+ * MD10S motor driver board interface.
+ *
+ *
+ * TODO: change the motor pin definitions to match the gpio pins we need
  *
  * @author     James Strawson
  * @date       1/31/2018
@@ -25,16 +25,22 @@ extern "C" {
 #endif
 
 #define RC_MOTOR_DEFAULT_PWM_FREQ	25000	///< 25kHz
-#define ADAS_MOTOR_HARDCODE_HACK 4 // motor channel that is hard coded to use gpio pin
+
+
+// motor pin definitions
+
+// direction pin: chip, pin
+#define DIRECTION 2,8
+
+// speed pin: chip, pin
+#define SPEED 2,9
+
+// reverse on time in microseconds to stop motor on a dime
+#define BACK_FORCE_TIME 100
 
 /**
- * @brief      Initializes all 4 motors and leaves them in a free-spin (0
- * throttle) state.
+ * @brief      Initializes pins for motors and leaves motor in free spin state
  *
- * Note, if the user is optionally using the rc_motor_standby functionality they
- * should be aware that rc_motor_init starts standby mode in a disabled state so
- * it is not necessary for the majority of users who are not interested in
- * standby mode.
  *
  * This starts the motor drivers at RC_MOTOR_DEFAULT_PWM_FREQ. To use another
  * frequency initialize with rc_motor_init_freq instead.
@@ -51,10 +57,7 @@ int rc_motor_init(void);
  *
  * RC_MOTOR_DEFAULT_PWM_FREQ is a good frequency to start at.
  *
- * Note, if the user is optionally using the rc_motor_standby functionality they
- * should be aware that rc_motor_init starts standby mode in a disabled state so
- * it is not necessary for the majority of users who are not interested in
- * standby mode.
+ * The pwm is not set up yet but am leaving this here in case we get around to it
  *
  * @param[in]  pwm_frequency_hz  The pwm frequency in hz
  *
@@ -65,8 +68,7 @@ int rc_motor_init_freq(int pwm_frequency_hz);
 
 
 /**
- * @brief      Puts all 4 motors into a free-spin (0 throttle) state, puts the
- * h-bridges into standby mode, and closes all file pointers to GPIO and PWM
+ * @brief     Closes all file pointers to GPIO and PWM and puts motor in free spin state
  * systems.
  *
  * @return     0 on success, -1 on failure.
@@ -75,56 +77,40 @@ int rc_motor_cleanup(void);
 
 
 /**
- * @brief      Toggle the H-bridges in and out of low-power standby mode.
+ * @brief      Sets motor to a direction. Currently only spins at full speed
+ * in a single direction. The duty is restricted to a value between -1.0 and 1.0 for now.
+ * Speed and direction is encoded in a single double. Negative is clockwise and pos is counter clockwise
  *
- * This is an entirely optional function as calling rc_motor_cleanup when your
- * program closes will put the h-bridges into standby mode and then calling
- * rc_motor_init at the beginning of your program will take them out of standby
- * mode. However, if the user wishes to toggle in and out of standby mode in
- * their program (for example while paused) then they can use this function.
- *
- * @param[in]  standby_en  1 to enable standby mode, 0 to disable
- *
- * @return     0 on success, -1 on failure.
- */
-int rc_motor_standby(int standby_en);
-
-
-/**
- * @brief      Sets the bidirectional duty cycle (power) to a single motor or
- * all motors if 0 is provided as a channel.
- *
- * @param[in]  ch    The motor channel (1-4) or 0 for all channels.
  * @param[in]  duty  Duty cycle, -1.0 for full reverse, 1.0 for full forward
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_set(int ch, double duty);
+int rc_motor_set(double duty);
 
 
 /**
- * @brief      Puts a motor into a zero-throttle state allowing it to spin
- * freely.
+ * @brief      Puts motor into a zero-throttle state allowing it to spin
+ * freely. Due to gear ratio of our motor this also locks it into place.
+ * However if the motor is spinning the intertia carries it a bit. To stop
+* motor on a dime call rc_motor_brake()
  *
  * This is accomplished by putting both motor terminals connected to the
  * h-bridge into a high-impedance state.
  *
- * @param[in]  ch    The motor channel (1-4) or 0 for all channels.
- *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_free_spin(int ch);
+int rc_motor_free_spin();
 
 
 /**
- * @brief      Connects the motor terminal pairs together which makes the motor
- * fight against its own back EMF turning it into a brake resisting rotation.
+ * @brief      Pulses the motor in the opposite direction to stop it on a dime.
+ * The length of back pulse is defined in microseconds in BACK_FORCE_TIME at top.
  *
- * @param[in]  ch    The motor channel (1-4) or 0 for all channels, the current motor movement direction
+ * @param[in]  direction    The current direction and speed of the motor. Will stop this direction
  *
  * @return     0 on success, -1 on failure
  */
-int rc_motor_brake(int ch, double direction);
+int rc_motor_brake(double direction);
 
 
 

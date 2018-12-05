@@ -1,4 +1,4 @@
-/**
+	/**
  * @file rc_project_template.c
  *
  * This is meant to be a skeleton program for Robot Control projects. Change
