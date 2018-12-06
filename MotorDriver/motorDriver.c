@@ -78,9 +78,8 @@ int main()
 
                 // do things based on the state
                 if(rc_get_state()==RUNNING){
-                  moveMotor(fakeCurrent[i], fakeProjected[i]);
+                  moveMotor(fakeCurrent[i], fakeProjected[i++]);
                   if (i == sizeof(fakeCurrent)/sizeof(fakeCurrent[0])) i = 0;
-                  i++;
                 }
                 else{
                         rc_led_set(RC_LED_GREEN, 0);
@@ -107,11 +106,12 @@ int main()
  * @params: current pos of motor, projected pos of motor
  */
 void moveMotor(int currentPos, int projectedPos){
+  double difference = currentPos - projectedPos;
   if(!inMargin(currentPos, projectedPos)){
-    adas_motor_set((double)difference);
+    adas_motor_set(difference);
   }
   else if(inMargin(currentPos, projectedPos)){
-    adas_motor_brake((double)difference);
+    adas_motor_brake(difference);
   }
 
 }
@@ -122,7 +122,7 @@ void moveMotor(int currentPos, int projectedPos){
  * output: 1 if need to move still 0 if within margin
 */
 int inMargin(int current, int projected){
-  return (current - projected < MARGIN && current - projected > -MARGIN )
+  return (current - projected < MARGIN && current - projected > -MARGIN );
 }
 
 /**
