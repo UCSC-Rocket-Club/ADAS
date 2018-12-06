@@ -20,7 +20,6 @@
 // speed pin: chip, pin
 #define SPEED   3,17
 
-
 // kep track of whether things were initialized
 static int init_flag = 0;
 // check to see if moving i.e. need to pulse motor to stop
@@ -169,6 +168,6 @@ int adas_motor_brake(double duty)
 	// if wasn't moving dont worry bout it fuck it
 	// gear ratio of motor will automatcially stop motor
 	moving = 1;
-	adas_motor_free_spin()
+	adas_motor_free_spin();
 	return 0;
 }
