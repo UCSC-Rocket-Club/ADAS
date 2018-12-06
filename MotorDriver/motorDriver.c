@@ -12,7 +12,8 @@
 // function declarations
 void on_pause_press();
 void on_pause_release();
-boolean inMargin(int current, int projected);
+int inMargin(int current, int projected);
+void moveMotor(int currentPos, int projectedPos);
 
 // fake encoder positions to test functions
 static int fakeProjected = [100,-100,-100];
@@ -54,7 +55,7 @@ int main()
         }
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-        rc_moto
+        adas_motor_init();
         // make PID file to indicate your project is running
         // due to the check made on the call to rc_kill_existing_process() above
         // we can be fairly confident there is no PID file already and we can
@@ -106,11 +107,10 @@ int main()
  * @params: current pos of motor, projected pos of motor
  */
 void moveMotor(int currentPos, int projectedPos){
-  int difference = currentPos - projectedPos;
-  if(!inMargin(difference)){
+  if(!inMargin(currentPos, projectedPos)){
     adas_motor_set((double)difference);
   }
-  elseif(inMargin(difference)){
+  else if(inMargin(currentPos, projectedPos)){
     adas_motor_brake((double)difference);
   }
 
@@ -121,7 +121,7 @@ void moveMotor(int currentPos, int projectedPos){
  * input: the current position, the projected position
  * output: 1 if need to move still 0 if within margin
 */
-boolean inMargin(int current, int projected){
+int inMargin(int current, int projected){
   return (current - projected < MARGIN && current - projected > -MARGIN )
 }
 
