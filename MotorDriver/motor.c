@@ -8,6 +8,7 @@
 #include "motor.h"
 #include <rc/model.h>
 #include <rc/gpio.h>
+##include <rc/time.h>
 
 // preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
@@ -41,7 +42,6 @@ int adas_motor_init(void)
 
 int adas_motor_init_freq(int pwm_frequency_hz)
 {
-	int i;
 
 	// set up gpio pins
 	if(unlikely(rc_gpio_init(DIRECTION, GPIOHANDLE_REQUEST_OUTPUT))){
@@ -57,7 +57,7 @@ int adas_motor_init_freq(int pwm_frequency_hz)
 
 	// now set all the gpio pins and pwm to something predictable
 	init_flag = 1;
-	if(unlikely(rc_motor_free_spin(0))){
+	if(unlikely(rc_motor_free_spin())){
 		fprintf(stderr,"ERROR in adas_motor_init\n");
 		init_flag = 0;
 		return -1;
@@ -71,7 +71,6 @@ int adas_motor_init_freq(int pwm_frequency_hz)
 
 int adas_motor_cleanup(void)
 {
-	int i;
 	if(!init_flag) return 0;
 	adas_motor_free_spin(0);
 	rc_gpio_cleanup(DIRECTION);
@@ -82,7 +81,7 @@ int adas_motor_cleanup(void)
 
 int adas_motor_set(double duty)
 {
-	int a,b,i;
+	int dir;
 
 	// sanity checks
 	if(unlikely(init_flag==0)){
