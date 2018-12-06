@@ -2,6 +2,7 @@ from numpy import *
 from matplotlib.pyplot import *
 from scipy.interpolate import interp1d, interp2d
 from time import time
+import numpy as np
 
 '''
 Need to:
@@ -57,7 +58,7 @@ class Data :
 def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, time_res, temp, burn_time, max_deploy, t_start, t_deploy, plots, drag_f) :
 
     # popen C program
-    theta = pi / 2   # hardcode rocket to fly straight for simulation
+    theta = np.pi / 2   # hardcode rocket to fly straight for simulation
     
     # define constants
     R = 8.31447         # Universal gas constant [J/mol*K]
@@ -75,7 +76,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, time_re
     # initialize drag force function and rocket and flight objects
     drag_function = Get_Drag_Function()
     Aeoline = Rocket(thrust_profile, rocket_mass, motor_mass, propellant_mass, burn_time,  max_deploy)
-    t_arb = 90      # an arbitrary number around t.apogee for initial high vals and end of ADAS deployment
+    t_arb = 20      # an arbitrary number around t.apogee for initial high vals and end of ADAS deployment
     t = Times(burn_time, t_start, time_res, t_deploy, t_arb)   # CAREFUL, don't use t elsewhere
     data = Data(len(t.arr))
     data.m[0] = Aeoline.wet_mass
@@ -86,7 +87,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, time_re
     start = time()  # TEST
     total_impulse = 0
     N = 1000        # arbitrary 10000 time steps
-    time_steps = linspace(0, burn_time, N)  # TEST
+    time_steps = np.linspace(0, burn_time, N)  # TEST
 
 
     for ti in time_steps :
@@ -105,7 +106,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, time_re
     # pressure from barometric formula with non-zero lapse rate (L0)
     def air_pressure (hi):   # pressure not 3.14
         # return P0 * (T / (T + L0 * hi)) ** (g * M / R * L0)   # non-zero lapse rate
-        return P0 * exp(-g * M * hi / (R * T))    # 0 lapse rate
+        return P0 * np.exp(-g * M * hi / (R * T))    # 0 lapse rate
     
     # Gives drag force and deployment percentage
     # this needs testing and revamping
