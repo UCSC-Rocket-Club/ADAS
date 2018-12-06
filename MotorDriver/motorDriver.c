@@ -16,8 +16,8 @@ int inMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
 
 // fake encoder positions to test functions
-static int fakeProjected = [100,-100,-100];
-static int fakeCurrent = [0,100,-100];
+static int fakeProjected[] = {100,100,100};
+static int fakeCurrent[] = {0,100,-100};
 /**
  * This template contains these critical components
  * - ensure no existing instances are running and make new PID file
@@ -89,7 +89,7 @@ int main()
                 }
                 // always sleep at some point
                 // wait 1/25 sec to mimic refresh rate
-                rc_usleep(40000);
+                rc_usleep(DIVISION);
         }
         // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
