@@ -15,10 +15,10 @@
 // motor pin definitions
 
 // direction pin: chip, pin
-#define DIRECTION 3,20
+#define DIRECTION   3,20
 
 // speed pin: chip, pin
-#define SPEED 3,17
+#define SPEED   3,17
 
 
 // kep track of whether things were initialized
