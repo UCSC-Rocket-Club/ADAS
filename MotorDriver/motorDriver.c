@@ -5,19 +5,27 @@
  * this description and file name before modifying for your own purpose.
  */
 #include <stdio.h>
+#include <unistd.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
 #include "motor.h" //include adas motor shit
 
-#define MARGIN 5 // margin of postition to stop motor and lock in place
+#define MOTOR_DRIVER_MARGIN 5 // margin of postition to stop motor and lock in place
+#define MOTOR_DRIVER_CPR 1120 // pulses per revolution of output shaft
+#define MOTOR_DRIVER_MAX  1120 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
+#define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
+#define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
+
 // function declarations
 void on_pause_press();
 void on_pause_release();
+void Init();
 int inMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
 
+
 // fake encoder positions to test functions
-static int fakeProjected[] = {100,100,100};
-static int fakeCurrent[] = {0,100,-100};
+static uint64_t lastReadTime = 0;
+static int initFlag = 0; // initialize flag
 /**
  * This template contains these critical components
  * - ensure no existing instances are running and make new PID file
@@ -30,42 +38,18 @@ static int fakeCurrent[] = {0,100,-100};
  */
 int main()
 {
-        // make sure another instance isn't running
-        // if return value is -3 then a background process is running with
-        // higher privaledges and we couldn't kill it, in which case we should
-        // not continue or there may be hardware conflicts. If it returned -4
-        // then there was an invalid argument that needs to be fixed.
-        if(rc_kill_existing_process(2.0)<-2) return -1;
-        // start signal handler so we can exit cleanly
-        if(rc_enable_signal_handler()==-1){
-                fprintf(stderr,"ERROR: failed to start signal handler\n");
-                return -1;
-        }
-        // initialize pause button
-        if(rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
-                                                RC_BTN_DEBOUNCE_DEFAULT_US)){
-                fprintf(stderr,"ERROR: failed to initialize pause button\n");
-                return -1;
-        }
-
-        // initialize motor
-        if(adas_motor_init()){
-          fprintf(stderr,"ERROR: failed to initialize motor\n");
-          return -1;
-        }
+        // initilize everything
+        Init();
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-        adas_motor_init();
         // make PID file to indicate your project is running
         // due to the check made on the call to rc_kill_existing_process() above
         // we can be fairly confident there is no PID file already and we can
         // make our own safely.
 
-        int directionPin = 2;
-        int speed = 5;
-        int currentPos = 5;
-        int projectedPos = 6;
-        int pulse = 0;
+
+        // position data
+        int currentPos, projectedPos;
 
 
         rc_make_pid_file();
@@ -76,11 +60,19 @@ int main()
         int i = 0;
         while(rc_get_state()!=EXITING){
 
-                // do things based on the state
+                // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
-                  moveMotor(fakeCurrent[i], fakeProjected[i++]);
-                  if (i == sizeof(fakeCurrent)/sizeof(fakeCurrent[0])) i = 0;
+                  // turn on leds to signal we've started
+                  rc_led_set(RC_LED_GREEN, 1);
+                  rc_led_set(RC_LED_RED, 0);
+                  // get current position
+                  currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
+                  // see if need to change position
+                  getProjectedPos(&projectedPos);
+                  // now move motor if needed
+                  moveMotor(currentPos, projectedPos);
                 }
+                // end of actual code, now in hibernate
                 else{
                         rc_led_set(RC_LED_GREEN, 0);
                         rc_led_set(RC_LED_RED, 1);
@@ -100,6 +92,71 @@ int main()
         return 0;
 }
 
+/*
+ * gets the next projected pos from whatever source
+ * should be the pipe from the algorithm
+ * only writes the position once every MOTOR_DRIVER_READ_HZ
+ * input: pointer to the int holding the projected position
+ */
+void getProjectedPos(int* projectedPos){
+  uint64_t currentTime = rc_nanos_since_boot();
+  // only get the shit if the refresh time is good
+  if(currentTime - lastReadTime <= MOTOR_DRIVER_READ_HZ){
+    if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
+    *projectedPos = 0; // change to position to move to
+    // update time
+    lastReadTime = currentTime;
+  }
+}
+
+
+/*
+ * initialize everything
+ * signal handler
+ * button
+ * motor driver
+ * encoder
+ * read flag
+ *
+ */
+void Init(){
+  if(!initFlag){
+    // make sure another instance isn't running
+    // if return value is -3 then a background process is running with
+    // higher privaledges and we couldn't kill it, in which case we should
+    // not continue or there may be hardware conflicts. If it returned -4
+    // then there was an invalid argument that needs to be fixed.
+    if(rc_kill_existing_process(2.0)<-2) return -1;
+    // start signal handler so we can exit cleanly
+    if(rc_enable_signal_handler()==-1){
+            fprintf(stderr,"ERROR: failed to start signal handler\n");
+            return -1;
+    }
+    // initialize pause button
+    if(rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
+                                            RC_BTN_DEBOUNCE_DEFAULT_US)){
+            fprintf(stderr,"ERROR: failed to initialize pause button\n");
+            return -1;
+    }
+
+    // initialize motor
+    if(adas_motor_init()){
+      fprintf(stderr,"ERROR: failed to initialize motor\n");
+      return -1;
+    }
+
+    // initialize encoder first
+    if(rc_encoder_eqep_init()){
+          fprintf(stderr,"ERROR: failed to run rc_encoder_eqep_init\n");
+          return -1;
+    }
+
+    // initialize time for reading from buffer
+    lastReadTime = rc_nanos_since_boot();
+    initFlag = 1;
+    }
+}
+
 /**
  * continuous loop to check position of motor and needed pos
  * call to move motor or stay in place
@@ -117,12 +174,18 @@ void moveMotor(int currentPos, int projectedPos){
 }
 
 /**
- * get the speed to turn the motor
+ * whether or not the current position is within the margin
+ * i.e. whether or not to stop the motor (think of it as a bit mask)
+ * call as if(outsideMargin) fucking move;
+ * else fucking stop
  * input: the current position, the projected position
  * output: 1 if need to move still 0 if within margin
 */
-int inMargin(int current, int projected){
-  return (current - projected < MARGIN && current - projected > -MARGIN );
+int outsideMargin(int current, int projected){
+  return (current - projected < MOTOR_DRIVER_MARGIN
+        && current - projected > -MOTOR_DRIVER_MARGIN
+        && current < MOTOR_DRIVER_MAX
+        && current > -MOTOR_DRIVER_MAX);
 }
 
 /**
