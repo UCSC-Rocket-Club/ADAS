@@ -21,9 +21,6 @@
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
 
-// global varriables
-int currentPos, projectedPos;
-
 // function declarations
 void on_pause_press();
 void on_pause_release();
@@ -66,9 +63,6 @@ int main()
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
-
-        // position data
-
         int i = 0;
         while(rc_get_state()!=EXITING){
 
@@ -79,10 +73,14 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  // see if need to change position
+                  printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos[i]);
+		                // see if need to change position
                   // getProjectedPos(&projectedPos);
+		                printf("\r");
+		                  fflush(stdout);
                   // now move motor if needed
-                  moveMotor(currentPos, projectedPos);
+                  moveMotor(currentPos, projectedPos[i++]);
+		                if(i == 10) i = 0;
                 }
                 // end of actual code, now in hibernate
                 else{
@@ -179,11 +177,12 @@ int Init(int *position, int *finished, pthread_t *thread_id){
  */
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
-  if(!inMargin(currentPos, projectedPos)){
+  if(!outsideMargin(currentPos, projectedPos)){
+	  printf("im moving bitch");
     adas_motor_set(difference);
   }
-  else if(inMargin(currentPos, projectedPos)){
-    adas_motor_brake(difference);
+  else if(outsideMargin(currentPos, projectedPos)){
+	  adas_motor_brake();
   }
 
 }
@@ -224,13 +223,15 @@ void *getProjectedPos(void *args){
  * call as if(outsideMargin) fucking move;
  * else fucking stop
  * input: the current position, the projected position
- * output: 1 if need to move still 0 if within margin
+ *
+ * output: 1 if im outside margin and need to move, 0 otherwise
 */
 int outsideMargin(int current, int projected){
-  return (current - projected < MOTOR_DRIVER_MARGIN
-        && current - projected > -MOTOR_DRIVER_MARGIN
-        && current < MOTOR_DRIVER_MAX
-        && current > -MOTOR_DRIVER_MAX);
+  int inMargin = current - projected < MOTOR_DRIVER_MARGIN
+        && current - projected > -MOTOR_DRIVER_MARGIN;
+  int inMax = current < MOTOR_DRIVER_MAX
+        && current > -MOTOR_DRIVER_MAX;
+  return inMargin && inMax;
 }
 
 /**
