@@ -4,23 +4,6 @@
  * This is meant to be a skeleton program for Robot Control projects. Change
  * this description and file name before modifying for your own purpose.
  */
-<<<<<<< HEAD
-#include <stdio.h>
-#include <robotcontrol.h> // includes ALL Robot Control subsystems
-#include "motor.h" //include adas motor shit
-
-#define MARGIN 5 // margin of postition to stop motor and lock in place
-#define DIVISION 40000 // time between each cycle i.e. refresh rate
-// function declarations
-void on_pause_press();
-void on_pause_release();
-int inMargin(int current, int projected);
-void moveMotor(int currentPos, int projectedPos);
-
-// fake encoder positions to test functions
-static int fakeProjected[] = {100,100,100};
-static int fakeCurrent[] = {0,100,-100};
-=======
 
 // takes in stdin from algorithm for positon to move to
 // outputs encoder positon on every time we refresh data
@@ -57,7 +40,6 @@ typedef struct {
 
 // fake encoder positions to test functions
 static int initFlag = 0; // initialize flag
->>>>>>> origin/MotorDriver
 /**
  * This template contains these critical components
  * - ensure no existing instances are running and make new PID file
@@ -70,59 +52,6 @@ static int initFlag = 0; // initialize flag
  */
 int main()
 {
-<<<<<<< HEAD
-        // make sure another instance isn't running
-        // if return value is -3 then a background process is running with
-        // higher privaledges and we couldn't kill it, in which case we should
-        // not continue or there may be hardware conflicts. If it returned -4
-        // then there was an invalid argument that needs to be fixed.
-        if(rc_kill_existing_process(2.0)<-2) return -1;
-        // start signal handler so we can exit cleanly
-        if(rc_enable_signal_handler()==-1){
-                fprintf(stderr,"ERROR: failed to start signal handler\n");
-                return -1;
-        }
-        // initialize pause button
-        if(rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
-                                                RC_BTN_DEBOUNCE_DEFAULT_US)){
-                fprintf(stderr,"ERROR: failed to initialize pause button\n");
-                return -1;
-        }
-
-        // initialize motor
-        if(adas_motor_init()){
-          fprintf(stderr,"ERROR: failed to initialize motor\n");
-          return -1;
-        }
-        // Assign functions to be called when button events occur
-        rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-        adas_motor_init();
-        // make PID file to indicate your project is running
-        // due to the check made on the call to rc_kill_existing_process() above
-        // we can be fairly confident there is no PID file already and we can
-        // make our own safely.
-
-        int directionPin = 2;
-        int speed = 5;
-        int currentPos = 5;
-        int projectedPos = 6;
-        int pulse = 0;
-
-
-        rc_make_pid_file();
-        printf("\nPress and release pause button to turn green LED on and off\n");
-        printf("hold pause button down for 2 seconds to exit\n");
-        // Keep looping until state changes to EXITING
-        rc_set_state(RUNNING);
-        int i = 0;
-        while(rc_get_state()!=EXITING){
-
-                // do things based on the state
-                if(rc_get_state()==RUNNING){
-                  moveMotor(fakeCurrent[i], fakeProjected[i++]);
-                  if (i == sizeof(fakeCurrent)/sizeof(fakeCurrent[0])) i = 0;
-                }
-=======
         // thread to get shit
         pthread_t talkThread;
         int currentPos, finished;
@@ -168,22 +97,12 @@ int main()
                   // now move motor if needed
                 }
                 // end of actual code, now in hibernate
->>>>>>> origin/MotorDriver
                 else{
                         rc_led_set(RC_LED_GREEN, 0);
                         rc_led_set(RC_LED_RED, 1);
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-<<<<<<< HEAD
-                // wait 1/25 sec to mimic refresh rate
-                rc_usleep(DIVISION);
-        }
-        // turn off LEDs and close file descriptors
-        rc_led_set(RC_LED_GREEN, 0);
-        rc_led_set(RC_LED_RED, 0);
-        rc_led_cleanup();
-=======
         */
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
@@ -192,15 +111,12 @@ int main()
         rc_led_cleanup();
 	//char *error[200];
 	//if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
->>>>>>> origin/MotorDriver
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
         return 0;
 }
 
-<<<<<<< HEAD
-=======
 
 /*
  * initialize everything
@@ -278,7 +194,6 @@ int Init(int *position, int *finished, pthread_t *thread_id){
    return 0;
 }
 
->>>>>>> origin/MotorDriver
 /**
  * continuous loop to check position of motor and needed pos
  * call to move motor or stay in place
@@ -286,24 +201,6 @@ int Init(int *position, int *finished, pthread_t *thread_id){
  */
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
-<<<<<<< HEAD
-  if(!inMargin(currentPos, projectedPos)){
-    adas_motor_set(difference);
-  }
-  else if(inMargin(currentPos, projectedPos)){
-    adas_motor_brake(difference);
-  }
-
-}
-
-/**
- * get the speed to turn the motor
- * input: the current position, the projected position
- * output: 1 if need to move still 0 if within margin
-*/
-int inMargin(int current, int projected){
-  return (current - projected < MARGIN && current - projected > -MARGIN );
-=======
 //  printf("in movemotor bitch");
   while(outsideMargin(currentPos, projectedPos)){
 //	  printf("im moving bitch");
@@ -373,7 +270,6 @@ int outsideMargin(int current, int projected){
 	       	|| (current > 0 && projected < current)))? 1: 0;
 //	printf("inmargin: %d, inMax: %d", inMargin, inMax);
   return inMargin && allowGo;
->>>>>>> origin/MotorDriver
 }
 
 /**
