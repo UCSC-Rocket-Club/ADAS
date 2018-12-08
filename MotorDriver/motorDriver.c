@@ -191,10 +191,10 @@ void moveMotor(int currentPos, int projectedPos){
 //  printf("in movemotor bitch");
   if(outsideMargin(currentPos, projectedPos)){
 //	  printf("im moving bitch");
-    adas_motor_set(-difference);
+    adas_motor_set(difference);
   }
   else if(!outsideMargin(currentPos, projectedPos)){
-//	  adas_motor_brake(-difference);
+//	  adas_motor_brake(difference);
           adas_motor_free_spin();
 	  // need to free spin, break function makes motor spaz out
   }
@@ -209,7 +209,7 @@ void moveMotor(int currentPos, int projectedPos){
 */
 void *getProjectedPos(void *argv){
   args *input = (args*) argv;
-
+printf("started the threadshit boi");
   // get start time
   uint64_t startTime = rc_nanos_since_boot();
   uint64_t lastReadTime = rc_nanos_since_boot();
