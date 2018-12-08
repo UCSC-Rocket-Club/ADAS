@@ -1,0 +1,190 @@
+1.0.4
+    * fix missing stddef.h include in i2c.h
+    * add kmartin36's PRU encoder robustness improvement
+    * fix rc_startup_routine not completing in some configurations
+
+1.0.3
+    * correct default pinmux value for UART and SPI to those functions
+    * fix string length error in rc_spi_loopback_test
+    * add minimum realization case for PI and P controller in rc_filter_pid
+    * fix compass heading in 2 DMP orientation options
+    * fix uninitialized matrix in rc_altitude example
+    * fix spi randomly breaking due to non-initialized struct
+    * small documentation improvements
+
+1.0.2
+    * Add function rc_filter_duplicate()
+    * add macro RC_VECTOR_INITIALIZER
+    * add macro RC_MATRIX_INITIALIZER
+    * add macro RC_RINGBUF_INITIALIZER
+    * add macro RC_FILTER_INITIALIZER
+    * add macro RC_KALMAN_INITIALIZER
+    * fix broken rc_kalman_alloc_ekf and rc_kalman_update_ekf
+
+1.0.1
+    * Support pwm driver changes introduced in 4.14.61-ti-r68
+    * documentation improvements
+
+1.0.0
+    * finally, v1.0.0 release!
+    * rename package to librobotcontrol
+    * extended SPI interface
+    * extended model interface to detect Rpi and PC
+    * add x86_64 package
+    * add more manual pages to documentation
+    * new slack workspace!
+    * update serial IO to use size_t for consistency
+    * add workaround for BB pwm frequency changes
+    * backwards compatability links for roboticscape
+    * lots of little bugfixes
+
+0.4.4
+    * go back to generic .so name to avoid conflicts
+    * add rc/encoder.h as generic interface to all 4 channels
+
+0.4.3
+    * rc_startup_routine makes log timestamps relative to power button press
+    * encoder and servo pru code has more robust checking of if PRU binary actually loaded
+    * remove pruss-blacklist.conf
+    * option in rc_test_escs to disable warmup period
+    * tweaks for PX4 build environment
+    * DSM calibration now logs center positions too
+    * GPIO device interface now separates gpiochips for portability
+    * fix some floating point number comparisons
+    * put back rc_usefulincludes.h for backwards compatibility
+    * optimizations in QR decomposition
+    * switch to semantic version scheme
+    * label so version as major version 0
+
+0.4.2
+    * new kalman filter module wtih rc_test_kalman and rc_altitude examples
+    * new <rc/deprecated.h> to help some transition from v0.3 to v0.4 library
+    * convert all linear algebra from single to double precision due to rounding errors
+    * merge RobertCNelson's systemd service improvements
+    * add third order complementary filter function
+    * Improve DSM robustness
+    * rc_make_pid_file also makes the pid directory and provides helpful error messages
+    * 'make' in the library now runs on any architecture
+    * new rc_matrix_symmetrize and rc_matrix_subtract functions
+    * redundant motor functions removed
+    * Lots of random little bugfixes
+
+
+0.4.1
+    * Simplify configure_robotics_dt.sh by removing unnecessary UUID line
+    * update Black and Black wireless device trees to have new LED driver and IIO adc
+    * add Jason's STDIN mode to rc_balance
+    * add ycdtosa's fixed to deb package
+    * fix pru encoder counter
+    * make PWM work with old and new driver
+    * rc_test_dmp prints temp when requested
+    * add library make options for native architecture
+    * add DSM examples and improve DSM performance
+    * add rc_disable_noncritical_services.sh to source
+    * add accelerometer calibration
+    * add rc_test_drivers.c
+
+0.4.0
+    * complete rewrite and overhaul
+    * move all docs to doxygen
+    * all subsystems are now in independent headers
+    * move gpio to new device driver
+    * move ADC from mmap to iio
+    * deprecate rc_initialize(), new functions for handling PID files/signals
+    * most examples no longer require root
+    * all examples are dependent on single subsystems for portability
+    * pwm through driver instead of mmap
+    * mpu9250 IMU config allows custom gpio pin and address
+    * mpu9250 DMP tap detection allowed
+    * mpu9250 dmp mode can now run slower than 200hz
+    * button interface allows custom buttons
+    * uart interface allows config on initialization
+    * add mavlink interface over udp
+    * add PRU interface for custom PRU binary loading
+    * split encoder counting on eqep and pru to avoid conflicts
+    * cpu frequency interface now controls scheduler
+    * LED interface controls battery LEDs, USR, and WIFI leds
+    * various renaming and fixes in math lib
+    * single include for all math sub-libs
+    * new pthread helpers
+    * servo interface now has same function to handle one and all channels
+    * battery monitor has startup and power-change flash patterns
+    * roboticscape systemd service helps set permissions of device drivers
+    * project template demonstrates PID file and signal handling
+    * new rc_test_esc example
+    * new makefile for examples means all src files can be in same folder
+    * all makefiles keep src/bin folders separate
+
+0.3.4
+    * add setuid on example install so 'sudo' is not needed
+    * rc_balance will calibrate gyro automatically if needed
+    * add ldconfig to deb package scripts
+
+0.3.3
+    * update project template for new api
+    * warn user if not running as root
+    * remove touch from makefiles
+
+0.3.2
+    * Fix DSM driving in balance
+    * Update documentation source comments
+    * Smoother install with new debconf question
+
+0.3.1
+    * Safely handle old and new device trees with and without postfix
+    * stricter whitelisting of supported boards and device trees
+
+0.3.0
+    * add noninteractive mode to deb package installer
+    * add rc_ prefix to all functions and examples for uniqueness requirement
+    * fix IMU DMP priority and thread join causing segfaults in labview
+    * New functions rc_usleep and rc_nanosleep
+    * new timing functions rc_nanos_since_epoch(), rc_nanos_since_boot()
+    * New function rc_nanos_since_epoch() and rc_test_time example
+    * linear algebra functions use ARM-NEON hardware acceleration
+    * new exmaples rc_test_vectors, rc_test_polynomial, rc_benchmark_algebra
+    * functions to enable/disable signal handler
+    * rc_create_filter functions for both vectors and arrays
+    * new functions rc_poly_div(), rc_poly_add(), rc_poly_subtract()
+    * add get_random_double for accelerated double-precision float generation
+    * Handle new BB_BLUE red and green LEDs being controlled by the kernel
+    * rc_battery_monitor whitelists Black, Black Wireless, and Blue
+    * other minor improvements
+
+0.2.2
+    * move ldconfig out of makefile
+
+0.2.1
+    * add options for degrees, radians, and raw to test_imu
+    * print tait bryan angles in test_dmp in untis of degrees
+    * check kernel and debain version in install.sh
+
+0.2.0
+    * Pinmux functions for BB Blue
+    * gpio and pwm exposed in roboticscape.h
+    * DSM radio fixed and robustified
+    * debug target for libroboticscape.so
+    * BB Wireless device tree
+    * project template in /usr/share/roboticscape
+    * calibration files moved to /var/lib/roboticscape
+    * startup log moved to /var/log/roboticscape
+    * PRU bins compile with pru-software-support-package
+
+0.1.5
+    * add userspace pinmux configuration for some headers
+
+0.1.4
+    * implement debounce for buttons
+
+0.1.3
+    * fix debconf question on install
+    * move project template to /etc/robot_template
+    * preserve /etc/roboticscape on reinstall to keep startup link
+
+0.1.2
+    * new device tree to enable PRU support on Black
+
+0.1.0
+    * installs on Blue as well and Black
+
+// indentation is with spaces to allow copy/paste into debian/changelog
