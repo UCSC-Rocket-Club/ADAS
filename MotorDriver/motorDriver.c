@@ -65,7 +65,7 @@ int main()
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
-        while(rc_get_state()!=EXITING){
+        while(1){
 
                 // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
@@ -74,10 +74,10 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
+                  // printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
 		                // see if need to change position
                   // getProjectedPos(&projectedPos);
-		                printf("\r");
+		                // printf("\r");
 		                  fflush(stdout);
                   // now move motor if needed
                   moveMotor(currentPos, projectedPos);
@@ -221,7 +221,8 @@ printf("started the threadshit boi");
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only get the shit if the refresh time is good
     if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
-     *(input->projectedPos) = 50; // change to position to move to
+     *(input->projectedPos) = number; // change to position to move to
+     printf("changed the number boi");
       // update time
       lastReadTime = rc_nanos_since_boot();
       // log encoder data
