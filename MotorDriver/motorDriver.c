@@ -28,6 +28,7 @@ void on_pause_release();
 int Init(int *position, int *finished, pthread_t *thread_id);
 int outsideMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
+void *getProjectedPos(void *argv);
 
 // struct to pass data to thread
 typedef struct {
@@ -55,7 +56,7 @@ int main()
         pthread_t talkThread;
         int currentPos, projectedPos, finished;
         // initilize everything
-        if(!Init(&projectedPos, &finished, &talkThread)) {
+        if(Init(&projectedPos, &finished, &talkThread)) {
           fprintf(stderr, "Error in initialize\n");
           fflush(stdout);
           return -1;
@@ -63,7 +64,6 @@ int main()
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
-        int i = 0;
         while(rc_get_state()!=EXITING){
 
                 // the main code, if going just do this stuff
@@ -93,7 +93,10 @@ int main()
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
+	finished = 1; // close thread talker
         rc_led_cleanup();
+	char *error[200];
+	if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
@@ -109,6 +112,11 @@ int main()
  * encoder
  * read flag
  *
+ * input: pointer to position int to fill with position data,
+ * 	finished int pointer to exit thread cleanly
+ * 	thread pointer to hold onto talkThread
+ *
+ * output: -1 for an error, 0 if eveything initialized correctly
  */
 int Init(int *position, int *finished, pthread_t *thread_id){
   if(!initFlag){
@@ -153,12 +161,12 @@ int Init(int *position, int *finished, pthread_t *thread_id){
     // create arguments
 
     args *arguments = (args*) malloc(sizeof(args));
-    arguments->projectedPos = &position;
-    finished = 0;
-    arguments->finished = &finished;
+    arguments->projectedPos = position;
+    *finished = 0;
+    arguments->finished = finished;
 
-    if(!pthread_create(&thread, NULL, getProjectedPos, arguments)){
-      fprintf(stderr, "ERROR: failed to start positon listener thread\n", );
+    if(pthread_create(&thread, NULL, getProjectedPos, arguments)){
+      fprintf(stderr, "ERROR: failed to start positon listener thread\n");
       return -1;
     }
 
@@ -180,7 +188,7 @@ int Init(int *position, int *finished, pthread_t *thread_id){
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
   if(outsideMargin(currentPos, projectedPos)){
-	  printf("im moving bitch");
+	  // printf("im moving bitch");
     adas_motor_set(difference);
   }
   else if(!outsideMargin(currentPos, projectedPos)){
@@ -208,7 +216,7 @@ void *getProjectedPos(void *argv){
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only get the shit if the refresh time is good
     if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
-     input->projectedPos = number; // change to position to move to
+     *(input->projectedPos) = number; // change to position to move to
       // update time
       lastReadTime = rc_nanos_since_boot();
       // log encoder data
