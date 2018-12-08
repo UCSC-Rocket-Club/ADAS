@@ -66,7 +66,7 @@ int main()
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
-        while(go){
+        while(rc_get_state() != EXITING){
           if(scanf("%d", &projectedPos)){
             currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
             moveMotor(currentPos, projectedPos);
@@ -200,6 +200,7 @@ void moveMotor(int currentPos, int projectedPos){
   while(outsideMargin(currentPos, projectedPos)){
 //	  printf("im moving bitch");
     adas_motor_set(difference);
+    currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
   }
 //	  adas_motor_brake(difference);
   adas_motor_free_spin();
