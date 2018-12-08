@@ -1,104 +1,142 @@
+# Code that logs data and determines deployment percentages for subscale flight
+# To be implemented on Dec. 8 by UCSC Rocket Team 2019
+
 from numpy import *
 from time import time
 import subprocess
+from Deployment import Deployment
+from datalog import datalog
 
 '''
 Need to:
- - write in deployment algorithm (use Eddie's code)
  - read data from pipe
  - write (what) data where ?
  - simulate to predict a after launch and Fd of rocket at MECO
 '''
 
 
-class Times :
-    def __init__ (self, t_burn, t_start, t_res, t_deploy, t_end) :
-        self.burn = t_burn;     # motor burn time
-        self.start = t_burn + t_start  # time to start deployment
-        self.end = t_end        # time to end activity after apogee for insurance
-        self.step = t_res       # time step
-        self.deploy = t_deploy  # time from 0 to 100% deployment 
-        self.launch = 0.0       # stays at 0
-        self.launch_date = 0.0  # will be actual time() of launch to use as reference 
-        self.MECO = t_end       # time after launch of MECO 
-        self.apogee = t_end     # time after launch of apogee
-        self.arr = np.arange(self.launch, self.end, self.step)  # array of all time steps
+class Data_Log :
+    def __init__ (self, fname) :
+        self.fname = fname
+
+    def log(self, data) :
+        with open(self.fname, "a") as f:
+            now = datetime.datetime.now()
+            timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+            f.write("{},{}\n".format(timestamp, data))
 
 
-Cprogram = subprocess.Popen(['./a.out'],stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
-Cprogram1 = subprocess.Popen(['./b.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
+# give deployment % (=0 unless between MECO and apogee events)
+def deployment (ti):
 
-# currently for J825
-# define constants
-g = 9.81            # [m/s^2]
-time_res = 1. / 25  # 25 Hz
-burn_time = 1.2     # [s] (approximately)
-t_start = 1         # [s]
-# approx apogee at 14.4s    => 13s of adjustments
-t_end = 90      # max time that rocket should be in air
-
-
-t = Times(burn_time, t_start, time_res, t_end)   # CAREFUL, don't use t elsewhere
-
-
-
-def deployment (i):
-
-    if ti <= t.start :
-        deployment = 0
-    elif Apogee == False:   # modify gaussian business?
-        deployment = depl_arr[i]      # insert some deployment procedure here
+    if ti <= t_start :
+        deployment = 0              # no deployment before MECO
+    elif Apogee == False:   
+        deployment = depl_arr[1]    # grab next deployment percentage
+        depl_arr.pop(0)             # remove used deployment value
     else :
-        deployment = 0
+        deployment = 0              # no deployment after apogee
 
     return deployment
 
-# Waiting on launch pad, measuring acc to detect launch
-a_thresh = 10   # [g]s a_thresh = 180 m/s^2
-while True :
-    # save and overwrite .1s worth of data
-    data = Cprogram.stdout.readline().strip()
-    acc_data = split(", ")
-
-    if a/g >= a_thresh :
-        t.launch_date = time()
-        break
 
 
 
-# define buffers for determining launch, MECO, and apogee
-buffer_acc = .2     
-buffer_vel = .1
+# define constants (currently using J420 motor)
+
+g = 9.81            # [m/s^2]gravitational constant 
+time_res = 1. / 25  # [s] expecting motor to operate at 25 Hz
+t_burn = 1.54       # [s] expected time for MECO
+t_start = 1.        # [s] when to start deployment after MECO
+t_apogee = 12.      # [s] expected time to reach apogee (actually 11.9 for J420)
+t_end = 90.         # [s] max time that rocket should be in air
+t_arr = np.arange(self.launch, self.end, self.step)  # array of all time steps
+ 
+# constants for deployment calculation    
+min_depl = 0.10     # [%] minimum deployment
+max_depl = 0.80     # [%] maximum deployment
+steps_depl = 4      # num steps in stair function between min and max depl
+
+
+
+# open pipes to C programs to read IMU data and communicate with the motor 
+DATA = subprocess.Popen(['./a.out'],stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
+MOTOR = subprocess.Popen(['./b.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
+
+# get deployment array from module
+depl_arr = Deployment((t_ap-t_burn)/time_res, steps_depl, min_depl, max_depl) 
+
+# create opjects for logging data
+sensors = Data_Log('sensors.csv')
+encoder = Data_Log('encoder.csv')
+events = Data_Log('events.csv')
+
+
 
 # Booleans for detection of MECO and Apogee
 MECO = False
 Apogee = False
 
-for i in range(1, len(t.arr)) :
+# define near-zero buffers for detection of launch, MECO, and apogee
+buffer_acc = .2     # approx acc due to drag at MECO instance 
+buffer_vel = .1     # approx vel at MECO !! (How good is BB resolution?)
+a_thresh = 8        # [gs] threshhold to detect launch (expect max of 10)
 
-    ti = t.arr[i]
+# want to store (some) data before launch is detected
+launch_data = []    # holds pre-launch data
+num_data_pts = 20   # arbitrary number of points to catch data pre-launch detection
 
-    # get data through pipe 
+
+# Waiting on launch pad, measuring acc to detect launch
+while True :
+    data = DATA.stdout.readline().strip()
+    a = split(", ")  # get vertical acc data only for use
+
+    # store and overwrite num_data_pts of data
+    launch_data.append(data)
+    if len(launch_data) > num_data_pts :
+        launch_data.pop(0)
+
+    if (a/g) >= a_thresh :
+        events.log('Launch ')
+        break
+
+# store the data at launch
+for i in range(num_data_pts) :
+    sensors.log(launch_data(i))
+
+
+# in air, logging data throughout
+for i in range(1, len(t_arr)) :
     
-    data = Cprogram.stdout.readline().strip()
-    datalog()
+    ti = t_arr[i]   # current time
+
     
-    # write deployment to another C code
+    data = DATA.stdout.readline().strip() # get sensor data through pipe 
+    sensors.log(data)                     # write sensor data to file
+    # get vertical v and a to check for events
+    v = 
+    a = 
+
+    MOTOR.stdin.write(deployment(ti))     # pipe deployment % to the motor code
+    encoder.log(MOTOR.stdout.readline().strip()) # write encoding to file
+
+    
 
     # detect MECO as point when a is only gravity and drag or as the burn time
     if not MECO :
-        if (data.a[i] <= - (g + buffer_acc) or t.arr[i] > t.burn) :
-            t_MECO = t.arr[i]
+        if (a <= - (g + buffer_acc) or t_arr[i] > t_burn) :
+            events.log('MECO ')
             MECO = True     
             continue
 
+
     # detect apogee with velocity (when negative) CHANGE (use pressure instead?)
     if (not Apogee) and MECO :
-        if (data.v[i] < buffer_vel or t.arr[i] > t.end) :
-            t.apogee = t.arr[i]
+        if (v < buffer_vel or t_arr[i] > t_apogee) :
+            events.log('Apogee ')
             Apogee = True 
-            # set rest of deployments to 0
             continue   # set to continue for actual to record data during descent
 
-# write launch time, MECO time, Apogee time
+
 exit(0)
