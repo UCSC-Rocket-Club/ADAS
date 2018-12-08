@@ -2,11 +2,12 @@ import subprocess
 import time
 import os
 
-Cprogram = subprocess.Popen(['./motorDriver'],stdout=open('adae.txt','w'), stdin=subprocess.PIPE, preexec_fn=os.setsid)
+Cprogram = subprocess.Popen(['./motorDriver'],stdout=subprocess.PIPE, stdin=subprocess.PIPE, preexec_fn=os.setsid)
 
-while(1):
-        inme = input("gimmie a position")
-        Cprogram.stdin.write(str(inme))
+for i in range(1,300, 10):
+    #inme = input("gimmie a position")
+        print("i is currently " +str(i))
+        Cprogram.stdin.write(str(i))
 	Cprogram.stdin.flush()
 #	A = Cprogram.stdout.readline().strip()
 #	print(A)
@@ -16,5 +17,3 @@ while(1):
 	time.sleep(1)
 
 # print(A)
-os.killpg(os.getpgid(pro.pid), signal.SIGTERM)
-exit(0)

@@ -67,13 +67,17 @@ int main()
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 	   printf("going to %d\n", projectedPos);
 
+	char buffer[100];
         while(rc_get_state() != EXITING){
-          if(scanf("%d", &projectedPos)){
+          // if(scanf("%d", &projectedPos)){
+	    fgets(buffer, 100, stdin);
+	    printf("%s", buffer);
+	    projectedPos = atoi(buffer);
             currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
             moveMotor(currentPos, projectedPos);
             printf("%d\n", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
             rc_usleep(10000);
-          }
+          //}
 
         }
 
