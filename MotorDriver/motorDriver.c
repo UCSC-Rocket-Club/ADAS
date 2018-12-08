@@ -54,7 +54,8 @@ int main()
 {
         // thread to get shit
         pthread_t talkThread;
-        int currentPos, projectedPos, finished;
+        int currentPos, finished;
+	int projectedPos = 10000;
         // initilize everything
         if(Init(&projectedPos, &finished, &talkThread)) {
           fprintf(stderr, "Error in initialize\n");
@@ -88,7 +89,7 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-                rc_usleep(100000);
+                rc_usleep(10000);
         }
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
@@ -187,12 +188,15 @@ int Init(int *position, int *finished, pthread_t *thread_id){
  */
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
+//  printf("in movemotor bitch");
   if(outsideMargin(currentPos, projectedPos)){
-	  // printf("im moving bitch");
-    adas_motor_set(difference);
+//	  printf("im moving bitch");
+    adas_motor_set(-difference);
   }
   else if(!outsideMargin(currentPos, projectedPos)){
-	  adas_motor_brake(difference);
+//	  adas_motor_brake(-difference);
+          adas_motor_free_spin();
+	  // need to free spin, break function makes motor spaz out
   }
 
 }
@@ -212,11 +216,12 @@ void *getProjectedPos(void *argv){
   int number;
   // just run fucker
   while(!input->finished){
+	  printf("in pos shit boi");
     // just pull in stuff from the input
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only get the shit if the refresh time is good
     if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
-     *(input->projectedPos) = number; // change to position to move to
+     *(input->projectedPos) = 50; // change to position to move to
       // update time
       lastReadTime = rc_nanos_since_boot();
       // log encoder data
@@ -239,10 +244,13 @@ void *getProjectedPos(void *argv){
  * output: 1 if im outside margin and need to move, 0 otherwise
 */
 int outsideMargin(int current, int projected){
-  int inMargin = current - projected < MOTOR_DRIVER_MARGIN
-        && current - projected > -MOTOR_DRIVER_MARGIN;
-  int inMax = current < MOTOR_DRIVER_MAX
+	int difference = current-projected;
+	difference = (difference < 0)? -1*difference: difference;
+//	printf("difference is: %d", difference);
+  int inMargin = !(difference < MOTOR_DRIVER_MARGIN);
+  int inMax =  current < MOTOR_DRIVER_MAX
         && current > -MOTOR_DRIVER_MAX;
+//	printf("inmargin: %d, inMax: %d", inMargin, inMax);
   return inMargin && inMax;
 }
 
