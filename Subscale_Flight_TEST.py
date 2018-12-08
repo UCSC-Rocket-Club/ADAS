@@ -108,7 +108,7 @@ steps_depl = 4      # num steps in stair function between min and max depl
 
 # open pipes to C programs to read IMU data and communicate with the motor 
 DATA1 = subprocess.Popen(['./rc_altitude'],stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
-# MOTOR = subprocess.Popen(['./b.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
+MOTOR = subprocess.Popen(['./MotorDriver/motorDriver'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
 
 # get deployment array from module
 # depl_arr = Deployment((t_apogee-t_burn)/time_res, steps_depl, min_depl, max_depl) 
