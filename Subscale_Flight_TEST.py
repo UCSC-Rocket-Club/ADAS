@@ -3,6 +3,8 @@
 
 import subprocess
 import datetime 
+import os
+import signal
 
 
 class Data_Log :
@@ -113,7 +115,7 @@ DATA1 = subprocess.Popen(['./rc_altitude'],stdout=subprocess.PIPE, stdin=subproc
 
 # create opjects for logging data
 sensors = Data_Log('sensors.csv')
-# encoder = Data_Log('encoder.csv')
+encoder = Data_Log('encoder.csv')
 events = Data_Log('events.csv')
 
 
@@ -167,9 +169,9 @@ for i in range(1, len(t_arr)) :
     # v = 
     # a = 
 
-    # MOTOR.stdin.write(deployment(ti))     # pipe deployment % to the motor code
-    # MOTOR.stdin.flush()
-    # encoder.log(MOTOR.stdout.readline().strip()) # write encoding to file
+    MOTOR.stdin.write(deployment(ti))     # pipe deployment % to the motor code
+    MOTOR.stdin.flush()
+    encoder.log(MOTOR.stdout.readline().strip()) # write encoding to file
 
     
 
@@ -191,5 +193,7 @@ for i in range(1, len(t_arr)) :
 
 DATA.stdin.write('kill') # kill ends program (not necessary but here anyway)
 DATA.stdin.flush()
+# send kill signal to c programs
+os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
 
 exit(0)
