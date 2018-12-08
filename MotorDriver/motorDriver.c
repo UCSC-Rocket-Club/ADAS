@@ -6,12 +6,14 @@
  */
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <pthread.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
 #include "motor.h" //include adas motor shit
 
 #define MOTOR_DRIVER_MARGIN 5 // margin of postition to stop motor and lock in place
 #define MOTOR_DRIVER_CPR 1120 // pulses per revolution of output shaft
-#define MOTOR_DRIVER_MAX  1120 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
+#define MOTOR_DRIVER_MAX  1120/4 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
 
@@ -49,7 +51,8 @@ int main()
 
 
         // position data
-        int currentPos, projectedPos;
+        int currentPos;
+        int[] projectedPos= [123,1231,2312,312,3123,123,123,12,31,23,123,12,3123123];
 
 
         rc_make_pid_file();
@@ -68,7 +71,7 @@ int main()
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
                   // see if need to change position
-                  getProjectedPos(&projectedPos);
+                  // getProjectedPos(&projectedPos);
                   // now move motor if needed
                   moveMotor(currentPos, projectedPos);
                 }
@@ -153,6 +156,7 @@ void Init(){
 
     // initialize time for reading from buffer
     lastReadTime = rc_nanos_since_boot();
+    pthread_t getInput;
     initFlag = 1;
     }
 }
