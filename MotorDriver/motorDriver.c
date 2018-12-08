@@ -55,7 +55,7 @@ int main()
         // thread to get shit
         pthread_t talkThread;
         int currentPos, finished;
-	int projectedPos = 10000;
+	       int projectedPos = 100;
         // initilize everything
         if(Init(&projectedPos, &finished, &talkThread)) {
           fprintf(stderr, "Error in initialize\n");
@@ -209,20 +209,20 @@ void moveMotor(int currentPos, int projectedPos){
 */
 void *getProjectedPos(void *argv){
   args *input = (args*) argv;
-printf("started the threadshit boi");
+printf("started the threadshit boi the finished flag is %d \n", input->finished);
   // get start time
   uint64_t startTime = rc_nanos_since_boot();
   uint64_t lastReadTime = rc_nanos_since_boot();
   int number;
   // just run fucker
   while(!input->finished){
-	  printf("in pos shit boi");
+	  printf("in pos shit boi \n");
     // just pull in stuff from the input
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only get the shit if the refresh time is good
     if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
      *(input->projectedPos) = number; // change to position to move to
-     printf("changed the number boi");
+     printf("changed the number boi\n");
       // update time
       lastReadTime = rc_nanos_since_boot();
       // log encoder data
