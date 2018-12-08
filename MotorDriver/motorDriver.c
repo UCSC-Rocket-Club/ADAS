@@ -65,6 +65,7 @@ int main()
         int go = 1;
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
+	   printf("going to %d\n", projectedPos);
 
         while(rc_get_state() != EXITING){
           if(scanf("%d", &projectedPos)){
@@ -254,11 +255,17 @@ int outsideMargin(int current, int projected){
 	int difference = current-projected;
 	difference = (difference < 0)? -1*difference: difference;
 //	printf("difference is: %d", difference);
+//	reached the margin so stop
   int inMargin = !(difference < MOTOR_DRIVER_MARGIN);
+
+  // in the max range, return 1 if i realize my mistake and want to turn backward, otherwise 0
   int inMax =  current < MOTOR_DRIVER_MAX
         && current > -MOTOR_DRIVER_MAX;
+  int allowGo = (inMax || !inMax && (
+                (current < 0 && projected > current)
+	       	|| (current > 0 && projected < current)))? 1: 0;
 //	printf("inmargin: %d, inMax: %d", inMargin, inMax);
-  return inMargin && inMax;
+  return inMargin && allowGo;
 }
 
 /**
