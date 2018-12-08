@@ -9,6 +9,7 @@
 // outputs encoder positon on every time we refresh data
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -72,14 +73,13 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos[i]);
+                  printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
 		                // see if need to change position
                   // getProjectedPos(&projectedPos);
 		                printf("\r");
 		                  fflush(stdout);
                   // now move motor if needed
-                  moveMotor(currentPos, projectedPos[i++]);
-		                if(i == 10) i = 0;
+                  moveMotor(currentPos, projectedPos);
                 }
                 // end of actual code, now in hibernate
                 else{
@@ -152,12 +152,12 @@ int Init(int *position, int *finished, pthread_t *thread_id){
     *thread_id = thread;
     // create arguments
 
-    args *arguments = (args*) *malloc(sizeof(args));
-    arguments->projectedPos = position;
+    args *arguments = (args*) malloc(sizeof(args));
+    arguments->projectedPos = &position;
     finished = 0;
-    arguments->finished = finished;
+    arguments->finished = &finished;
 
-    if(!pthread_create(&thread, NULL, position, arguments)){
+    if(!pthread_create(&thread, NULL, getProjectedPos, arguments)){
       fprintf(stderr, "ERROR: failed to start positon listener thread\n", );
       return -1;
     }
@@ -169,6 +169,7 @@ int Init(int *position, int *finished, pthread_t *thread_id){
 
     initFlag = 1;
     }
+   return 0;
 }
 
 /**
@@ -183,7 +184,7 @@ void moveMotor(int currentPos, int projectedPos){
     adas_motor_set(difference);
   }
   else if(!outsideMargin(currentPos, projectedPos)){
-	  adas_motor_brake(differece);
+	  adas_motor_brake(difference);
   }
 
 }
@@ -207,11 +208,11 @@ void *getProjectedPos(void *argv){
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only get the shit if the refresh time is good
     if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
-      input->projectedPos = number; // change to position to move to
+     input->projectedPos = number; // change to position to move to
       // update time
       lastReadTime = rc_nanos_since_boot();
       // log encoder data
-      if(initFlag) fprintf(stdout, rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
+      if(initFlag) fprintf(stdout, "%d", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
       // flush to out
       fflush(stdout);
     }
