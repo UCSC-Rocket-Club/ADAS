@@ -4,6 +4,10 @@
  * This is meant to be a skeleton program for Robot Control projects. Change
  * this description and file name before modifying for your own purpose.
  */
+
+// takes in stdin from algorithm for positon to move to
+// outputs encoder positon on every time we refresh data
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -17,12 +21,22 @@
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
 
+// global varriables
+int currentPos, projectedPos;
+
 // function declarations
 void on_pause_press();
 void on_pause_release();
-void Init();
+int Init(int *position, int *finished, pthread_t *thread_id);
 int inMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
+
+// struct to pass data to thread
+typedef struct {
+  int *projectedPos;
+  pthread_t *input;
+  int *finished;
+}args;
 
 
 // fake encoder positions to test functions
@@ -40,26 +54,21 @@ static int initFlag = 0; // initialize flag
  */
 int main()
 {
+        // thread to get shit
+        pthread_t talkThread;
+        int currentPos, projectedPos, finished;
         // initilize everything
-        Init();
+        if(!Init(&projectedPos, &finished, &talkThread) {
+          fprintf(stderr, "Error in initialize\n");
+          fflush(stdout);
+          return -1;
+        }
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-        // make PID file to indicate your project is running
-        // due to the check made on the call to rc_kill_existing_process() above
-        // we can be fairly confident there is no PID file already and we can
-        // make our own safely.
 
 
         // position data
-        int currentPos;
-        int[] projectedPos= [123,1231,2312,312,3123,123,123,12,31,23,123,12,3123123];
 
-
-        rc_make_pid_file();
-        printf("\nPress and release pause button to turn green LED on and off\n");
-        printf("hold pause button down for 2 seconds to exit\n");
-        // Keep looping until state changes to EXITING
-        rc_set_state(RUNNING);
         int i = 0;
         while(rc_get_state()!=EXITING){
 
@@ -82,8 +91,7 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-                // wait 1/25 sec to mimic refresh rate
-                rc_usleep(DIVISION);
+                rc_usleep(100000);
         }
         // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
@@ -93,23 +101,6 @@ int main()
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
         return 0;
-}
-
-/*
- * gets the next projected pos from whatever source
- * should be the pipe from the algorithm
- * only writes the position once every MOTOR_DRIVER_READ_HZ
- * input: pointer to the int holding the projected position
- */
-void getProjectedPos(int* projectedPos){
-  uint64_t currentTime = rc_nanos_since_boot();
-  // only get the shit if the refresh time is good
-  if(currentTime - lastReadTime <= MOTOR_DRIVER_READ_HZ){
-    if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
-    *projectedPos = 0; // change to position to move to
-    // update time
-    lastReadTime = currentTime;
-  }
 }
 
 
@@ -122,7 +113,7 @@ void getProjectedPos(int* projectedPos){
  * read flag
  *
  */
-void Init(){
+int Init(int *position, int *finished, pthread_t *thread_id){
   if(!initFlag){
     // make sure another instance isn't running
     // if return value is -3 then a background process is running with
@@ -154,9 +145,29 @@ void Init(){
           return -1;
     }
 
-    // initialize time for reading from buffer
-    lastReadTime = rc_nanos_since_boot();
-    pthread_t getInput;
+    // make PID file to indicate your project is running
+    // due to the check made on the call to rc_kill_existing_process() above
+    // we can be fairly confident there is no PID file already and we can
+    // make our own safely.
+    rc_make_pid_file();
+
+
+    // create arguments
+    args *arguments = args *malloc(sizeof(args));
+    arguments->projectedPos = positon;
+    finished = 0;
+    arguments->finished = finished;
+
+    if(!pthread_create(&thread_id, NULL, getProjectedPos, arguments)){
+      fprintf(stderr, "ERROR: failed to start positon listener thread"\n", );
+      return -1;
+    }
+
+    printf("\nPress and release pause button to turn green LED on and off\n");
+    printf("hold pause button down for 2 seconds to exit\n");
+    // Keep looping until state changes to EXITING
+    rc_set_state(RUNNING);
+
     initFlag = 1;
     }
 }
@@ -175,6 +186,36 @@ void moveMotor(int currentPos, int projectedPos){
     adas_motor_brake(difference);
   }
 
+}
+
+/*
+* gets the next projected pos from whatever source
+* should be the pipe from the algorithm
+* only writes the position once every MOTOR_DRIVER_READ_HZ
+* input: pointer to the int holding the projected position
+*/
+void *getProjectedPos(void *args){
+  args *input = (args*) args;
+
+  // get start time
+  uint64_t startTime = rc_nanos_since_boot();
+  uint64_t lastReadTime = rc_nanos_since_boot();
+  int number;
+  // just run fucker
+  while(!input->finished){
+    // just pull in stuff from the input
+    if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
+    // only get the shit if the refresh time is good
+    if(currentTime - lastReadTime <= MOTOR_DRIVER_READ_HZ){
+      input->projectedPos = number; // change to position to move to
+      // update time
+      lastReadTime = rc_nanos_since_boot();
+      // flush to out
+      fflush(stdout);
+    }
+  }
+  // exit cleanly
+  pthread_exit(NULL);
 }
 
 /**
