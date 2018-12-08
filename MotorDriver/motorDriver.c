@@ -16,12 +16,12 @@
 #define MOTOR_DRIVER_MAX  1120/4 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
-
+#define DIVISION 100000
 // function declarations
 void on_pause_press();
 void on_pause_release();
 void Init();
-int inMargin(int current, int projected);
+int outsideMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
 
 
@@ -52,8 +52,8 @@ int main()
 
         // position data
         int currentPos;
-        int[] projectedPos= [123,1231,2312,312,3123,123,123,12,31,23,123,12,3123123];
-
+        //int[] projectedPos = [123,1231,2312,312,3123,123,123,12,31,23,123,12,3123123];
+	int projectedPos[10] = {123, 132, 32466, 5235, 9000, 900, 234, 123, 1325, 23532};
 
         rc_make_pid_file();
         printf("\nPress and release pause button to turn green LED on and off\n");
@@ -70,10 +70,14 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  // see if need to change position
+                  printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos[i]);
+		  // see if need to change position
                   // getProjectedPos(&projectedPos);
+		  printf("\r");
+		  fflush(stdout);
                   // now move motor if needed
-                  moveMotor(currentPos, projectedPos);
+                  moveMotor(currentPos, projectedPos[i++]);
+		  if(i == 10) i = 0;
                 }
                 // end of actual code, now in hibernate
                 else{
@@ -95,12 +99,13 @@ int main()
         return 0;
 }
 
+
+
 /*
  * gets the next projected pos from whatever source
  * should be the pipe from the algorithm
  * only writes the position once every MOTOR_DRIVER_READ_HZ
  * input: pointer to the int holding the projected position
- */
 void getProjectedPos(int* projectedPos){
   uint64_t currentTime = rc_nanos_since_boot();
   // only get the shit if the refresh time is good
@@ -113,6 +118,7 @@ void getProjectedPos(int* projectedPos){
 }
 
 
+ */
 /*
  * initialize everything
  * signal handler
@@ -168,11 +174,12 @@ void Init(){
  */
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
-  if(!inMargin(currentPos, projectedPos)){
+  if(outsideMargin(currentPos, projectedPos)){
+	  printf("im moving bitch");
     adas_motor_set(difference);
   }
-  else if(inMargin(currentPos, projectedPos)){
-    adas_motor_brake(difference);
+  else if(!outsideMargin(currentPos, projectedPos)){
+	  adas_motor_free_spin();
   }
 
 }
@@ -183,13 +190,14 @@ void moveMotor(int currentPos, int projectedPos){
  * call as if(outsideMargin) fucking move;
  * else fucking stop
  * input: the current position, the projected position
- * output: 1 if need to move still 0 if within margin
-*/
+ * 
+ * output: 0 if need to move stillx 1 if within margin
+*/ 
 int outsideMargin(int current, int projected){
-  return (current - projected < MOTOR_DRIVER_MARGIN
+  return !(current - projected < MOTOR_DRIVER_MARGIN
         && current - projected > -MOTOR_DRIVER_MARGIN
-        && current < MOTOR_DRIVER_MAX
-        && current > -MOTOR_DRIVER_MAX);
+         || current > MOTOR_DRIVER_MAX
+        || current < -MOTOR_DRIVER_MAX);
 }
 
 /**
