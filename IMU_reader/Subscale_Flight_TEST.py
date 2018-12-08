@@ -4,6 +4,8 @@
 import time
 import subprocess
 import datetime
+import os
+import signal
 
 '''
 Need to:
@@ -32,7 +34,7 @@ def deployment (ti):
     if MECO == False :
         deployment = 0              # no deployment before MECO
     elif Apogee == False:   
-        deployment = depl_arr[1]    # grab next deployment percentage
+        deployment = depl_arr[0]    # grab next deployment percentage
         depl_arr.pop(0)             # remove used deployment value
     else :
         deployment = 0              # no deployment after apogee
@@ -66,7 +68,7 @@ steps_depl = 4      # num steps in stair function between min and max depl
 
 # open pipes to C programs to read IMU data and communicate with the motor 
 DATA = subprocess.Popen(['/home/debian/ADAS_old/IMU_reader/rc_altitude'],stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
-# MOTOR = subprocess.Popen(['./b.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)     
+MOTOR = subprocess.Popen(['/home/debian/ADAS_old/MotorDriver/motorDriver'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)  
 
 # get deployment array from module
 # depl_arr = Deployment((t_apogee-t_burn)/time_res, steps_depl, min_depl, max_depl) 
@@ -130,9 +132,9 @@ for i in range(1, len(t_arr)):
     v = dat[1]
     a = dat[4]
 
-    # MOTOR.stdin.write(deployment(ti))     # pipe deployment % to the motor code
-    # MOTOR.stdin.flush()
-    # encoder.log(MOTOR.stdout.readline().strip()) # write encoding to file
+    MOTOR.stdin.write(deployment(ti))     # pipe deployment % to the motor code
+    MOTOR.stdin.flush()
+    encoder.log(MOTOR.stdout.readline().strip()) # write encoding to file
 
     
 
@@ -154,5 +156,9 @@ for i in range(1, len(t_arr)):
 
 DATA.stdin.write('kill') # kill ends program (not necessary but here anyway)
 DATA.stdin.flush()
+
+# send kill signal to exit c program cleanly
+os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
+
 
 exit(0)

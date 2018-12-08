@@ -79,7 +79,7 @@ def deployment (ti):
     if MECO == False :
         deployment = 0              # no deployment before MECO
     elif Apogee == False:   
-        deployment = depl_arr[1]    # grab next deployment percentage
+        deployment = depl_arr[0]    # grab next deployment percentage
         depl_arr.pop(0)             # remove used deployment value
     else :
         deployment = 0              # no deployment after apogee
@@ -92,14 +92,18 @@ def deployment (ti):
 # define constants (currently using J420 motor)
 
 g = 9.81            # [m/s^2]gravitational constant 
-time_res = 1./25    # [s] expecting motor to operate at 25 Hz
+HZ = 25
+time_res = 1./HZ    # [s] expecting motor to operate at 25 Hz
 t_burn = 1.54       # [s] expected time for MECO
 # t_start = 1.        # [s] when to start deployment after MECO
 t_apogee = 12.      # [s] expected time to reach apogee (actually 11.9 for J420)
-t_end = 90.         # [s] max time that rocket should be in air
+t_end = 90         # [s] max time that rocket should be in air
 t_arr = range(0, t_end, int(round(t_end / step)))  # array of all time steps
- 
-# constants for deployment calculation    
+
+t_arr = []
+for i in range(t_end * HZ) :
+	t_arr.append(i*time_res)
+
 min_depl = 0.10     # [%] minimum deployment
 max_depl = 0.80     # [%] maximum deployment
 steps_depl = 4      # num steps in stair function between min and max depl
@@ -125,7 +129,7 @@ Apogee = False
 
 # define near-zero buffers for detection of launch, MECO, and apogee
 buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
-buffer_vel = .2     # [m/s] approx vel at MECO (How good is BB resolution??)
+buffer_vel = .1     # [m/s] approx vel at MECO (How good is BB resolution??)
 g_thresh = 5        # [gs] threshhold to detect launch (expect max of 10)
 
 # want to store (some) data before launch is detected
@@ -136,17 +140,17 @@ ay_index = 4
 
 # Waiting on launch pad, measuring acc to detect launch
 while True :
-    DATA.stdin.write('get_data') # write anything to get data
-    DATA.stdin.flush()
     data = DATA.stdout.readline().strip()
     dat = split(",")
+    if (len(dat) < 10) :
+	continue
     ay = dat[ay_index]     # get vertical acc data only for use
-
+    ayy = dat[7]
     # store and overwrite num_data_pts of data
     launch_data.append(data)
     launch_data.pop(0)
 
-    if ay >= g_thresh*g :
+    if ay >= g_thresh*g or ayy >= g_thresh*g :
         events.log('Launch ')     # log launch event
         break
 
@@ -161,8 +165,6 @@ for i in range(1, len(t_arr)) :
     ti = t_arr[i]   # current time
 
     
-    DATA.stdin.write('get_data') # write anything to get data
-    DATA.stdin.flush()
     data = DATA.stdout.readline().strip() # get sensor data through pipe 
     sensors.log(data)                     # write sensor data to file
     # get vertical v and a to check for events
@@ -191,9 +193,6 @@ for i in range(1, len(t_arr)) :
             continue   # set to continue for actual to record data during descent
 
 
-DATA.stdin.write('kill') # kill ends program (not necessary but here anyway)
-DATA.stdin.flush()
-# send kill signal to c programs
 os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
 
 exit(0)
