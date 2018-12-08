@@ -62,10 +62,21 @@ int main()
           fflush(stdout);
           return -1;
         }
+        int go = 1;
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
-        while(1){
+        while(go){
+          if(scanf("%d", &projectedPos)){
+            currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
+            moveMotor(currentPos, projectedPos);
+            printf("%d\n", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
+            rc_usleep(10000);
+          }
+
+        }
+
+        /*while(go){
 
                 // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
@@ -73,14 +84,12 @@ int main()
                   rc_led_set(RC_LED_GREEN, 1);
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
-                  currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
                   // printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
 		                // see if need to change position
                   // getProjectedPos(&projectedPos);
 		                // printf("\r");
 		                  fflush(stdout);
                   // now move motor if needed
-                  moveMotor(currentPos, projectedPos);
                 }
                 // end of actual code, now in hibernate
                 else{
@@ -89,15 +98,14 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-                rc_usleep(10000);
-        }
+        */
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
 	finished = 1; // close thread talker
         rc_led_cleanup();
-	char *error[200];
-	if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
+	//char *error[200];
+	//if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
@@ -166,10 +174,10 @@ int Init(int *position, int *finished, pthread_t *thread_id){
     *finished = 0;
     arguments->finished = finished;
 
-    if(pthread_create(&thread, NULL, getProjectedPos, arguments)){
+    /*if(pthread_create(&thread, NULL, getProjectedPos, arguments)){
       fprintf(stderr, "ERROR: failed to start positon listener thread\n");
       return -1;
-    }
+    }*/
 
     printf("\nPress and release pause button to turn green LED on and off\n");
     printf("hold pause button down for 2 seconds to exit\n");
@@ -189,16 +197,13 @@ int Init(int *position, int *finished, pthread_t *thread_id){
 void moveMotor(int currentPos, int projectedPos){
   double difference = currentPos - projectedPos;
 //  printf("in movemotor bitch");
-  if(outsideMargin(currentPos, projectedPos)){
+  while(outsideMargin(currentPos, projectedPos)){
 //	  printf("im moving bitch");
     adas_motor_set(difference);
   }
-  else if(!outsideMargin(currentPos, projectedPos)){
 //	  adas_motor_brake(difference);
-          adas_motor_free_spin();
+  adas_motor_free_spin();
 	  // need to free spin, break function makes motor spaz out
-  }
-
 }
 
 /*
