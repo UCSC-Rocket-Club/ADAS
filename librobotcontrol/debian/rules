@@ -1,8 +1,0 @@
-#!/usr/bin/make -f
-%:
-	dh $@
-
-override_dh_fixperms:
-	dh_fixperms \
-	--exclude var/lib/robotcontrol
-
