@@ -143,7 +143,7 @@ for i in range(num_data_pts):
 sensors.log("\n----IN AIR-----\n")
 
 # in air, logging data throughout
-for i in range(1, len(t_arr)+1) :
+for i in range(1, len(t_arr)) :
     # ti = t_arr[i]   # current time
 
     data = DATA.stdout.readline().strip() # get sensor data through pipe 
