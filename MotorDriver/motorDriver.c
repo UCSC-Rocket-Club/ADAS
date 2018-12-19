@@ -74,10 +74,8 @@ int main()
           return -1;
         }
 
-        // Assign functions to be called when button events occur
-        rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 	       printf("going to %d\n", projectedPos);
-
+/*
 	char buffer[100];
         while(rc_get_state() != EXITING){
           // if(scanf("%d", &projectedPos)){
@@ -90,9 +88,17 @@ int main()
             rc_usleep(10000);
           //}
 
-        }
+        }*/
 
-        /*while(rc_get_state()!=EXITING){
+        /* the projected position is constantly being updated in the background
+         * by the other thread
+         * therefore just poll the current location and set to the new location when needed
+         * set the projected location to a temporary varriable to pass in to make the position change atomic
+         */
+
+        int atomicProjectedPos;
+
+        while(rc_get_state()!=EXITING){
 
                 // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
@@ -100,12 +106,15 @@ int main()
                   rc_led_set(RC_LED_GREEN, 1);
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
+                  currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
+                  atomicProjectedPos = *projectedPos;
+                  // execute move motor
+                  moveMotor(currentPos, atomicProjectedPos);
+                  printf("current position is: %d\n", currentPos);
+                  rc_usleep(1000);
                   // printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
-		                // see if need to change position
-                  // getProjectedPos(&projectedPos);
-		                // printf("\r");
-		                  fflush(stdout);
-                  // now move motor if needed
+		              // see if need to change position
+		              fflush(stdout);
                 }
                 // end of actual code, now in hibernate
                 else{
@@ -114,17 +123,19 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-        */
+
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
-	finished = 1; // close thread talker
+	      *finished = 1; // close thread talker
         rc_led_cleanup();
 	//char *error[200];
 	//if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
+        free(finished);
+        free(projectedPos);
         return 0;
 }
 
@@ -179,6 +190,9 @@ int Init(){
     // we can be fairly confident there is no PID file already and we can
     // make our own safely.
     rc_make_pid_file();
+
+    // Assign functions to be called when button events occur
+    rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
 
     printf("\nPress and release pause button to turn green LED on and off\n");
     printf("hold pause button down for 2 seconds to exit\n");
