@@ -25,17 +25,18 @@
 // function declarations
 void on_pause_press();
 void on_pause_release();
-int Init(int *position, int *finished, pthread_t *thread_id);
+int Init();
+pthread_t startThread(int *position, int *finished);
 int outsideMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
 void *getProjectedPos(void *argv);
 
 // struct to pass data to thread
-typedef struct {
+typedef struct args_t{
   int *projectedPos;
   pthread_t *input;
   int *finished;
-}args;
+}args_t;
 
 
 // fake encoder positions to test functions
@@ -54,18 +55,28 @@ int main()
 {
         // thread to get shit
         pthread_t talkThread;
-        int currentPos, finished;
-	       int projectedPos = 100;
+        int currentPos;
+	      int* projectedPos = calloc(1, sizeof(int));
+        int* finished = calloc(1, sizeof(int));
+
         // initilize everything
-        if(Init(&projectedPos, &finished, &talkThread)) {
+        if(Init()) {
           fprintf(stderr, "Error in initialize\n");
-          fflush(stdout);
+          fflush(stderr);
           return -1;
         }
-        int go = 1;
+
+        // start thread
+        talkThread = startThread(projectedPos, finished);
+        if(talkThread == NULL){
+          fprintf(stderr, "error starting thread"\n");
+          fflush(stderr)
+          return -1;
+        }
+
         // Assign functions to be called when button events occur
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-	   printf("going to %d\n", projectedPos);
+	       printf("going to %d\n", projectedPos);
 
 	char buffer[100];
         while(rc_get_state() != EXITING){
@@ -81,7 +92,7 @@ int main()
 
         }
 
-        /*while(go){
+        /*while(rc_get_state()!=EXITING){
 
                 // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
@@ -117,7 +128,6 @@ int main()
         return 0;
 }
 
-
 /*
  * initialize everything
  * signal handler
@@ -132,7 +142,7 @@ int main()
  *
  * output: -1 for an error, 0 if eveything initialized correctly
  */
-int Init(int *position, int *finished, pthread_t *thread_id){
+int Init(){
   if(!initFlag){
     // make sure another instance isn't running
     // if return value is -3 then a background process is running with
@@ -170,20 +180,6 @@ int Init(int *position, int *finished, pthread_t *thread_id){
     // make our own safely.
     rc_make_pid_file();
 
-    pthread_t thread;
-    *thread_id = thread;
-    // create arguments
-
-    args *arguments = (args*) malloc(sizeof(args));
-    arguments->projectedPos = position;
-    *finished = 0;
-    arguments->finished = finished;
-
-    /*if(pthread_create(&thread, NULL, getProjectedPos, arguments)){
-      fprintf(stderr, "ERROR: failed to start positon listener thread\n");
-      return -1;
-    }*/
-
     printf("\nPress and release pause button to turn green LED on and off\n");
     printf("hold pause button down for 2 seconds to exit\n");
     // Keep looping until state changes to EXITING
@@ -213,29 +209,51 @@ void moveMotor(int currentPos, int projectedPos){
 }
 
 /*
+ * start the thread for getting new position values
+ * input: allocated memory pointer to hold the position
+ * and whether to finish the thread or not. 1 for finished 0 not
+ * return: the id of the created thread or null if it fucked up
+*/
+pthread_t startThread(int *position, int *finished){
+  // createa pointer to a thread id
+  pthread_t *thread;
+
+  // create arguments
+  args_t *arguments = (args_t*) malloc(sizeof(args_t));
+  arguments->projectedPos = position;
+  *finished = 0;
+  arguments->finished = finished;
+
+  // start thread
+  if(pthread_create(thread, NULL, &getProjectedPos, arguments)){
+    fprintf(stderr, "ERROR: failed to start positon listener thread\n");
+    return NULL;
+  }
+
+  return *thread;
+}
+
+/*
 * gets the next projected pos from whatever source
 * should be the pipe from the algorithm
 * only writes the position once every MOTOR_DRIVER_READ_HZ
 * input: pointer to the int holding the projected position
 */
 void *getProjectedPos(void *argv){
-  args *input = (args*) argv;
+  args_t *input = (args_t*) argv;
 printf("started the threadshit boi the finished flag is %d \n", input->finished);
-  // get start time
-  uint64_t startTime = rc_nanos_since_boot();
-  uint64_t lastReadTime = rc_nanos_since_boot();
   int number;
-  // just run fucker
+  // just run fucker while input args says so
   while(!input->finished){
 	  printf("in pos shit boi \n");
     // just pull in stuff from the input
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
-    // only get the shit if the refresh time is good
-    if(rc_nanos_since_boot() - lastReadTime <= MOTOR_DRIVER_READ_HZ){
+    // only change the input if it differs (minnimize lock time)
+    if(number == input->projectedPos)){
+      LOCK(input->projectedPos);
      *(input->projectedPos) = number; // change to position to move to
+     UNLOCK(input->projectedPos);
      printf("changed the number boi\n");
-      // update time
-      lastReadTime = rc_nanos_since_boot();
       // log encoder data
       if(initFlag) fprintf(stdout, "%d", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
       // flush to out
@@ -257,17 +275,17 @@ printf("started the threadshit boi the finished flag is %d \n", input->finished)
 */
 int outsideMargin(int current, int projected){
 	int difference = current-projected;
-	difference = (difference < 0)? -1*difference: difference;
 //	printf("difference is: %d", difference);
-//	reached the margin so stop
-  int inMargin = !(difference < MOTOR_DRIVER_MARGIN);
+// am i within the margin
+//	0 = reached the margin so stop
+  int inMargin = !(difference < MOTOR_DRIVER_MARGIN && difference > -MOTOR_DRIVER_MARGIN);
 
-  // in the max range, return 1 if i realize my mistake and want to turn backward, otherwise 0
+  // 1 if im under the maximum range
   int inMax =  current < MOTOR_DRIVER_MAX
         && current > -MOTOR_DRIVER_MAX;
-  int allowGo = (inMax || !inMax && (
-                (current < 0 && projected > current)
-	       	|| (current > 0 && projected < current)))? 1: 0;
+// only go if im under the maximum range or im trying to turn backward
+  int allowGo = (inMax || (current < 0 && projected > current)
+	       	|| !(current < 0 && projected > current));
 //	printf("inmargin: %d, inMax: %d", inMargin, inMax);
   return inMargin && allowGo;
 }

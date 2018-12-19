@@ -28,7 +28,7 @@ extern "C" {
 
 
 // reverse on time in microseconds to stop motor on a dime
-#define BACK_FORCE_TIME 100
+#define BACK_FORCE_TIME 50
 
 /**
  * @brief      Initializes pins for motors and leaves motor in free spin state
