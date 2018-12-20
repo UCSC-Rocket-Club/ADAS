@@ -68,13 +68,13 @@ int main()
 
         // start thread
         talkThread = startThread(projectedPos, finished);
-        if(talkThread == NULL){
-          fprintf(stderr, "error starting thread"\n");
-          fflush(stderr)
+        if(!talkThread){
+          fprintf(stderr, "error starting thread\n");
+          fflush(stderr);
           return -1;
         }
 
-	       printf("going to %d\n", projectedPos);
+	       printf("going to %d\n", *projectedPos);
 /*
 	char buffer[100];
         while(rc_get_state() != EXITING){
@@ -85,7 +85,7 @@ int main()
             currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
             moveMotor(currentPos, projectedPos);
             printf("%d\n", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
-            rc_usleep(10000);
+            c_usleep(10000);
           //}
 
         }*/
@@ -123,6 +123,7 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
+	}
 
         // turn off LEDs and close file descripto 	rs
         rc_led_set(RC_LED_GREEN, 0);
@@ -230,7 +231,7 @@ void moveMotor(int currentPos, int projectedPos){
 */
 pthread_t startThread(int *position, int *finished){
   // createa pointer to a thread id
-  pthread_t *thread;
+  pthread_t *thread = calloc(1, sizeof(pthread_t));
 
   // create arguments
   args_t *arguments = (args_t*) malloc(sizeof(args_t));
@@ -241,7 +242,7 @@ pthread_t startThread(int *position, int *finished){
   // start thread
   if(pthread_create(thread, NULL, &getProjectedPos, arguments)){
     fprintf(stderr, "ERROR: failed to start positon listener thread\n");
-    return NULL;
+    return 0;
   }
 
   return *thread;
@@ -254,19 +255,17 @@ pthread_t startThread(int *position, int *finished){
 * input: pointer to the int holding the projected position
 */
 void *getProjectedPos(void *argv){
-  args_t *input = (args_t*) argv;
-printf("started the threadshit boi the finished flag is %d \n", input->finished);
+  args_t *input = argv;
+printf("started the threadshit boi the finished flag is %d \n", *input->finished);
   int number;
   // just run fucker while input args says so
-  while(!input->finished){
+  while(!*input->finished){
 	  printf("in pos shit boi \n");
     // just pull in stuff from the input
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only change the input if it differs (minnimize lock time)
-    if(number == input->projectedPos)){
-      LOCK(input->projectedPos);
-     *(input->projectedPos) = number; // change to position to move to
-     UNLOCK(input->projectedPos);
+    if(number == *input->projectedPos){
+     *input->projectedPos = number; // change to position to move to
      printf("changed the number boi\n");
       // log encoder data
       if(initFlag) fprintf(stdout, "%d", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
