@@ -16,7 +16,7 @@
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
 #include "motor.h" //include adas motor shit
 
-#define MOTOR_DRIVER_MARGIN 5 // margin of postition to stop motor and lock in place
+#define MOTOR_DRIVER_MARGIN 2 // margin of postition to stop motor and lock in place
 #define MOTOR_DRIVER_CPR 1120 // pulses per revolution of output shaft
 #define MOTOR_DRIVER_MAX  1120/4 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
@@ -264,7 +264,7 @@ printf("started the threadshit boi the finished flag is %d \n", *input->finished
     // just pull in stuff from the input
     if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
     // only change the input if it differs (minnimize lock time)
-    if(number == *input->projectedPos){
+    if(number != *input->projectedPos){
      *input->projectedPos = number; // change to position to move to
      printf("changed the number boi\n");
       // log encoder data
