@@ -77,17 +77,21 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     T = 288             # temperature of the air at launch altitude in [K]    # we think this is standard temp not temp(launch h)
     g = 9.81            # [m/s^2]
     P0 = 101325         # [Pa] Standard pressure at sea level
-    L0 = 6.5         # [K/m] Standard temperature lapse rate
+    L0 = 6.5            # [K/m] Standard temperature lapse rate
 
 
     # initialize drag force function and rocket and flight objects
     drag_function = Get_Drag_Function()
+
     Aeoline = Rocket(thrust_profile, rocket_mass, motor_mass, propellant_mass, burn_time)
+
     t_res = 1. / frequency
     t = Times(burn_time, t_start, t_apogee, t_res)   # CAREFUL, don't use t elsewhere
+
     data = Data(len(t.arr), logfilename)
     data.m[0] = Aeoline.wet_mass
     data.theta = np.random.normal(pi/2, pi/1000, len(t.arr))     # theta = pi/2 with some noise
+
 
     # Use Riemann sum to get the mass flow rate from the thrust curve 
     N = 1000        # arbitrary 1000 time steps
@@ -97,17 +101,18 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         total_impulse += Aeoline.thrust_function(ti) * burn_time / N
     print(' total impulse: ' + str(total_impulse))
 
-    
         
-    # for time ti, height hi, velocity vi, angle th, mass mi, pressure pi
+    # the following fxns are for time ti, height hi, velocity vi, angle th, mass mi, pressure pi
+
+    # gives time function of motor's mass flow. returns [kg/s]
     def mass_flow_rate (ti):
         if ti <= t.burn:
             return -Aeoline.thrust_function(ti) * Aeoline.propellant_mass / total_impulse
         else:
             return 0
 
-    # pressure from barometric formula with non-zero lapse rate (L0)
-    def air_pressure (hi):   # pressure not 3.14 [??]
+    # pressure from barometric formula - not currently used
+    def air_pressure (hi) :
         # return P0 * (T / (T + L0 * hi)) ** (g * M / R * L0)   # non-zero lapse rate
         return P0 * exp(-g * M * hi / (R * T))    # 0 lapse rate
     
@@ -126,7 +131,6 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         # data.deployment[i] = deployment
         return drag
         
-    # account for gyroscope data ??
     def height_step (hi, vi) :
         return hi + vi * t.step 
     
@@ -142,12 +146,14 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         return mi + mass_flow_rate(ti) * t.step
     
 
+
     ################################################################
     ########################## Simulation ##########################
     ################################################################
 
     # 1D trajectory plot via Forward Euler Integration
     data.log('time,altitude,velocity,acceleration')
+
     for i in range (1, int(t.apogee / t.step)+10) :   # simulate until a little after apogee
     
         ti = t.arr[i]
@@ -157,12 +163,13 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         data.v.append(velocity_step(data.v[i-1], data.a[i-1]))
         data.h.append(height_step(data.h[i-1], data.v[i-1]))
 
-    # some silliness to make the log clean
+    # some python silliness to be able to cleanly write to the log file
     data.a = np.asarray(data.a).flatten().tolist()
     data.v = np.asarray(data.v).flatten().tolist()
     data.h = np.asarray(data.h).flatten().tolist()
     data.m = np.asarray(data.m).flatten().tolist()
 
+    # log data in following form: "datetime,simTime,height,velocity,acceleration"
     for i in range(0, len(data.a)) :
         data.log(str(t.arr[i]) + ',' + str(data.h[i]) + ',' + str(data.v[i]) + ',' + str(data.a[i]))
 
