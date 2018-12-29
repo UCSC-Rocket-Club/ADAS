@@ -91,7 +91,7 @@ thread = Thread(target=enqueue_output, args=(MOTOR.stdout, queue))
 thread.daemon = True # thread dies with the program
 thread.start()
 
-# create opjects for logging data, arg is log filename
+# create opjects for logging data with the log filename
 sensors = Data_Log('sensors.csv')
 encoder = Data_Log('encoder.csv')
 events = Data_Log('events.csv')
@@ -159,11 +159,11 @@ for i in range(1, len(t_arr)) :
     
     # to avoid holdup - need to do for data reading ? 
     # https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-    # read line without blocking
-    try :  line = q.get_nowait() # or q.get(timeout=.1)
+    # read line of motor encoder data without blocking
+    try :  line = queue.get_nowait() # or q.get(timeout=.1)
     except Empty :
-        print('no output yet')  # do nothing
-    else: # got line
+        print('no output yet')      # do nothing
+    else :                          # got line
         encoder.log(MOTOR.stdout.readline().strip()) # write encoding from the driver to file
 
     
