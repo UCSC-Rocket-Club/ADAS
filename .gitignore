@@ -42,6 +42,10 @@
 *.idb
 *.pdb
 
+# Python Virtualenv
+.env
+env/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
