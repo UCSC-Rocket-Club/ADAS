@@ -45,6 +45,7 @@
 # Python Virtualenv
 .env
 env/
+__pycache__/
 
 # Kernel Module Compile Results
 *.mod*
