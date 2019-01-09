@@ -3,6 +3,9 @@
 
 
 import numpy as np
+
+import matplotlib
+matplotlib.use('TkAgg') # Needed for running when python isn't installed as a framework
 import matplotlib.pyplot as plt
 # import itertools as itertools
 
