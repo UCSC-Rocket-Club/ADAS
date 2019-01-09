@@ -79,8 +79,8 @@ depl_arr = StepDeployment((t_apogee-t_burn)/time_res) #, steps_depl, min_depl, m
 
 
 # open pipes to C programs to read IMU data and communicate with the motor 
-DATA = subprocess.Popen(['/home/debian/ADAS_old/IMU_reader/rc_altitude'],stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)     
-MOTOR = subprocess.Popen(['/home/debian/ADAS_old/MotorDriver/motorDriver'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)  
+DATA = subprocess.Popen(['/IMU/sensor'],stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)     
+MOTOR = subprocess.Popen(['/MotorDriver/motorDriver'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)  
 ''' Note about close_fds from docs: 
  If close_fds is true, all file descriptors except 0, 1 and 2 will be closed before the child process is executed. 
  Unix only). Or, on Windows, if close_fds is true then no handles will be inherited by the child process. 
