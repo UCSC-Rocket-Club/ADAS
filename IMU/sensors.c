@@ -1,10 +1,6 @@
 /**
  * @file sensors.c
  *
- * This serves as an example of how to read the barometer and IMU together to
- * estimate altitude
- *
- * @author     Julio Sandino
  * @date       12/13/2018
  */
 #include <stdio.h>
