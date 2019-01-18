@@ -4,9 +4,11 @@
 
 import numpy as np
 
-import matplotlib
-matplotlib.use('TkAgg') # Needed for running when python isn't installed as a framework
-import matplotlib.pyplot as plt
+#### This matplotlib code can be commented out because will not be used during flight
+# import matplotlib
+# matplotlib.use('TkAgg') # Needed for running when python isn't installed as a framework
+# import matplotlib.pyplot as plt
+
 # import itertools as itertools
 
 # gives a stair up/down function of deployment percentages between min_ and max_
@@ -54,18 +56,19 @@ def GaussianDeployment (t_deployment = 15, t_step = 1./25, t_start = 1, t_deploy
 	return deployment
 
 
-def PlotDeployment (array, t_end = None) :
-	if t_end is None :
-		plt.plot(array)
-		plt.xlabel('deployment index')
-	else :
-		plt.plot(linspace(0, t_end, len(array)), array)
-		plt.xlabel('time (s)')
-	plt.ylabel('deployment')
-	plt.title('Deployment Profile')
-	plt.grid(True)
-	plt.show()
-	return
+# This method will not be used during flight, so it is commented out
+# def PlotDeployment (array, t_end = None) :
+# 	if t_end is None :
+# 		plt.plot(array)
+# 		plt.xlabel('deployment index')
+# 	else :
+# 		plt.plot(linspace(0, t_end, len(array)), array)
+# 		plt.xlabel('time (s)')
+# 	plt.ylabel('deployment')
+# 	plt.title('Deployment Profile')
+# 	plt.grid(True)
+# 	plt.show()
+# 	return
 
 
 # converts array between formats
