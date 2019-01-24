@@ -19,6 +19,16 @@ except ImportError:
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
+#runs the motor through a test deployment array
+# 100 steps, 5 step incriments, until 95% deployment
+def testMotor(MOTOR):
+    test_deployment = StepDeployment(100, 5) # 100 deployments with steps of 5
+
+    for step in test_deployment:
+            MOTOR.stdin.write(step)     # pipe deployment % to the motor code
+            MOTOR.stdin.flush()
+
+
 def enqueue_output(out, queue):
     for line in iter(out.readline, b''):
         queue.put(line)
@@ -91,10 +101,13 @@ thread = Thread(target=enqueue_output, args=(MOTOR.stdout, queue))
 thread.daemon = True # thread dies with the program
 thread.start()
 
+testMotor(MOTOR) #make sure motor works
+
 # create opjects for logging data, arg is log filename
 sensors = Data_Log('sensors.csv')
 encoder = Data_Log('encoder.csv')
 events = Data_Log('events.csv')
+
 
 
 # Booleans for detection of MECO and Apogee

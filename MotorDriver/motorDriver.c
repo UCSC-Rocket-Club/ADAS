@@ -74,22 +74,6 @@ int main()
           return -1;
         }
 
-	       printf("going to %d\n", *projectedPos);
-/*
-	char buffer[100];
-        while(rc_get_state() != EXITING){
-          // if(scanf("%d", &projectedPos)){
-	    fgets(buffer, 100, stdin);
-	    printf("%s", buffer);
-	    projectedPos = atoi(buffer);
-            currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-            moveMotor(currentPos, projectedPos);
-            printf("%d\n", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
-            c_usleep(10000);
-          //}
-
-        }*/
-
         /* the projected position is constantly being updated in the background
          * by the other thread
          * therefore just poll the current location and set to the new location when needed
@@ -98,7 +82,7 @@ int main()
 
         int atomicProjectedPos;
 
-        while(rc_get_state()!=EXITING){
+        while(rc_get_state() !=  EXITING){
 
                 // the main code, if going just do this stuff
                 if(rc_get_state()==RUNNING){
