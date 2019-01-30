@@ -156,7 +156,6 @@ int main(void) {
 	printf("\n");
 	fflush(stdout);
 
-	char input[100];
 	while(running) {
 		// This is the main loop of the program
 		// Prints to stdout, and Python script picks it up.
