@@ -188,15 +188,7 @@ for i in range(1, len(t_arr)+1) :
 
 
 
-# kill C programs, need to c
 # send kill signal to exit c program cleanly
-<<<<<<< HEAD
 os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
 os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
-=======
-os.killpg(os.getpgid(DATA.pid), signal.SIGTERM) 
-os.killpg(os.getpgid(MOTOR.pid), signal.SIGTERM) 
->>>>>>> 4747c36d8d3363429cd66124c191f185554fe107
-
-
 exit(0)

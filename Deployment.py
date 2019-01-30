@@ -4,18 +4,11 @@
 
 import numpy as np
 
-<<<<<<< HEAD
-# matplotlib is commented out because it is not needed for inflight
-# import matplotlib
-# matplotlib.use('TkAgg') # Needed for running when python isn't installed as a framework
-# import matplotlib.pyplot as plt
-=======
 #### This matplotlib code can be commented out because will not be used during flight
 # import matplotlib
 # matplotlib.use('TkAgg') # Needed for running when python isn't installed as a framework
 # import matplotlib.pyplot as plt
 
->>>>>>> 4747c36d8d3363429cd66124c191f185554fe107
 # import itertools as itertools
 
 # gives a stair up/down function of deployment percentages between min_ and max_
@@ -62,12 +55,7 @@ def GaussianDeployment (t_deployment = 15, t_step = 1./25, t_start = 1, t_deploy
 			deployment.append(max_deploy)
 	return deployment
 
-<<<<<<< HEAD
-# This part is commented out because is is not needed when on flight
-=======
-
 # This method will not be used during flight, so it is commented out
->>>>>>> 4747c36d8d3363429cd66124c191f185554fe107
 # def PlotDeployment (array, t_end = None) :
 # 	if t_end is None :
 # 		plt.plot(array)
