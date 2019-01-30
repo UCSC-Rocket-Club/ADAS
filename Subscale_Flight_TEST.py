@@ -142,6 +142,8 @@ for i in range(num_data_pts):
 
 sensors.log("\n----IN AIR-----\n")
 
+start_air_time = time.time()
+
 # in air, logging data throughout
 for i in range(1, len(t_arr)+1) :
     # ti = t_arr[i]   # current time
@@ -169,7 +171,7 @@ for i in range(1, len(t_arr)+1) :
     
     # detect MECO as point when a is only gravity and drag or as the burn time
     if not MECO :
-        if (a <= - (g + buffer_acc) or t_arr[i] > t_burn) :
+        if (a <= - (g + buffer_acc) or (time.time() - start_air_time > t_burn)):
             events.log('MECO ')     # log MECO event
             sensors.log("\n----MECO-----\n")
             MECO = True   
@@ -178,7 +180,7 @@ for i in range(1, len(t_arr)+1) :
 
     # detect apogee with velocity (when negative) CHANGE (use pressure instead?)
     if (not Apogee) and MECO :
-        if (v < buffer_vel or t_arr[i] > t_apogee) :
+        if (v < buffer_vel or (time.time() - start_air_time) > t_apogee):
             events.log('Apogee ')     # log apogee event
             sensors.log("\n----APOGEE-----\n")
             Apogee = True 
@@ -188,8 +190,13 @@ for i in range(1, len(t_arr)+1) :
 
 # kill C programs, need to c
 # send kill signal to exit c program cleanly
+<<<<<<< HEAD
 os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
 os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
+=======
+os.killpg(os.getpgid(DATA.pid), signal.SIGTERM) 
+os.killpg(os.getpgid(MOTOR.pid), signal.SIGTERM) 
+>>>>>>> 4747c36d8d3363429cd66124c191f185554fe107
 
 
 exit(0)
