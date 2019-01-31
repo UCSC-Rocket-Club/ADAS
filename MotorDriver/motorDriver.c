@@ -43,9 +43,9 @@ static int initFlag = 0; // initialize flag
 int main()
 {
         // thread to get shit
-        args_t talkThread;
+        args_t* talkThread;
         int currentPos;
-	      int* projectedPos = calloc(1, sizeof(int));
+	int* projectedPos = calloc(1, sizeof(int));
         int* finished = calloc(1, sizeof(int));
 
         // initilize everything
@@ -56,8 +56,8 @@ int main()
         }
 
         // start thread
-        talkThread = *startThread(projectedPos, finished);
-        if(!talkThread){
+        talkThread = startThread(projectedPos, finished);
+        if(!*talkThread->thread){
           fprintf(stderr, "error starting thread\n");
           fflush(stderr);
           return -1;
@@ -80,7 +80,7 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  atomicProjectedPos = talkThread->projectedPos;
+                  atomicProjectedPos = *talkThread->projectedPos;
                   // execute move motor
                   moveMotor(currentPos, atomicProjectedPos);
                   printf("current position is: %d\n", currentPos);
@@ -96,18 +96,19 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-	          }
+	}
 
         // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
-	      talkThread->exit = 1; // close thread talker
+	*talkThread->exit = 1; // close thread talker
         rc_led_cleanup();
-	     if(pthread_join(talkThread->thread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
+	if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
         return 0;
+}
 
 /*
  * initialize everything
@@ -243,5 +244,5 @@ void on_pause_press()
         }
         printf("long press detected, shutting down\n");
         rc_set_state(EXITING);
-        return;
+	return;
 }

@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "motor.h"
 #include <rc/model.h>
 #include <rc/gpio.h>
@@ -40,7 +41,7 @@ int adas_motor_init(void)
 }
 
 
-int adas_motor_init_freq()
+int adas_motor_init_freq(int pwm_frequency_hz)
 {
 
 	// set up gpio pins
