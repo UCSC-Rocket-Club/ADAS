@@ -11,33 +11,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include <pthread.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
+#include "threadTalk.h"
 #include "motor.h" //include adas motor shit
 
 #define MOTOR_DRIVER_MARGIN 2 // margin of postition to stop motor and lock in place
+#define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_CPR 1120 // pulses per revolution of output shaft
 #define MOTOR_DRIVER_MAX  1120/4 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
-#define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_READ_HZ 1000000000/25 // time in ns/periods between each cycle i.e. refresh rate
 
 // function declarations
 void on_pause_press();
 void on_pause_release();
 int Init();
-pthread_t startThread(int *position, int *finished);
 int outsideMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
-void *getProjectedPos(void *argv);
-
-// struct to pass data to thread
-typedef struct args_t{
-  int *projectedPos;
-  pthread_t *input;
-  int *finished;
-}args_t;
-
 
 // fake encoder positions to test functions
 static int initFlag = 0; // initialize flag
@@ -54,7 +43,7 @@ static int initFlag = 0; // initialize flag
 int main()
 {
         // thread to get shit
-        pthread_t talkThread;
+        args_t talkThread;
         int currentPos;
 	      int* projectedPos = calloc(1, sizeof(int));
         int* finished = calloc(1, sizeof(int));
@@ -67,7 +56,7 @@ int main()
         }
 
         // start thread
-        talkThread = startThread(projectedPos, finished);
+        talkThread = *startThread(projectedPos, finished);
         if(!talkThread){
           fprintf(stderr, "error starting thread\n");
           fflush(stderr);
@@ -91,7 +80,7 @@ int main()
                   rc_led_set(RC_LED_RED, 0);
                   // get current position
                   currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  atomicProjectedPos = *projectedPos;
+                  atomicProjectedPos = talkThread->projectedPos;
                   // execute move motor
                   moveMotor(currentPos, atomicProjectedPos);
                   printf("current position is: %d\n", currentPos);
@@ -107,22 +96,18 @@ int main()
                         adas_motor_free_spin();
                 }
                 // always sleep at some point
-	}
+	          }
 
-        // turn off LEDs and close file descripto 	rs
+        // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
-	      *finished = 1; // close thread talker
+	      talkThread->exit = 1; // close thread talker
         rc_led_cleanup();
-	//char *error[200];
-	//if(pthread_join(talkThread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
+	     if(pthread_join(talkThread->thread, error)) fprintf(stderr, "error with thread closing: %s", error); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
-        free(finished);
-        free(projectedPos);
         return 0;
-}
 
 /*
  * initialize everything
@@ -205,60 +190,6 @@ void moveMotor(int currentPos, int projectedPos){
 //	  adas_motor_brake(difference);
   adas_motor_free_spin();
 	  // need to free spin, break function makes motor spaz out
-}
-
-/*
- * start the thread for getting new position values
- * input: allocated memory pointer to hold the position
- * and whether to finish the thread or not. 1 for finished 0 not
- * return: the id of the created thread or null if it fucked up
-*/
-pthread_t startThread(int *position, int *finished){
-  // createa pointer to a thread id
-  pthread_t *thread = calloc(1, sizeof(pthread_t));
-
-  // create arguments
-  args_t *arguments = (args_t*) malloc(sizeof(args_t));
-  arguments->projectedPos = position;
-  *finished = 0;
-  arguments->finished = finished;
-
-  // start thread
-  if(pthread_create(thread, NULL, &getProjectedPos, arguments)){
-    fprintf(stderr, "ERROR: failed to start positon listener thread\n");
-    return 0;
-  }
-
-  return *thread;
-}
-
-/*
-* gets the next projected pos from whatever source
-* should be the pipe from the algorithm
-* only writes the position once every MOTOR_DRIVER_READ_HZ
-* input: pointer to the int holding the projected position
-*/
-void *getProjectedPos(void *argv){
-  args_t *input = argv;
-printf("started the threadshit boi the finished flag is %d \n", *input->finished);
-  int number;
-  // just run fucker while input args says so
-  while(!*input->finished){
-	  printf("in pos shit boi \n");
-    // just pull in stuff from the input
-    if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
-    // only change the input if it differs (minnimize lock time)
-    if(number != *input->projectedPos){
-     *input->projectedPos = number; // change to position to move to
-     printf("changed the number boi\n");
-      // log encoder data
-      if(initFlag) fprintf(stdout, "%d", rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS));
-      // flush to out
-      fflush(stdout);
-    }
-  }
-  // exit cleanly
-  pthread_exit(NULL);
 }
 
 /**

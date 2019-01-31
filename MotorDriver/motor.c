@@ -40,7 +40,7 @@ int adas_motor_init(void)
 }
 
 
-int adas_motor_init_freq(int pwm_frequency_hz)
+int adas_motor_init_freq()
 {
 
 	// set up gpio pins
