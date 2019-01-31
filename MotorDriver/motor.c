@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "motor.h"
 #include <rc/model.h>
 #include <rc/gpio.h>
