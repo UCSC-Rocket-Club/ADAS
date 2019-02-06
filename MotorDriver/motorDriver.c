@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
 #include "threadTalk.h"
 #include "motor.h" //include adas motor shit
@@ -27,6 +28,13 @@ void on_pause_release();
 int Init();
 int outsideMargin(int current, int projected);
 void moveMotor(int currentPos, int projectedPos);
+static int running = 0;
+
+static void __signal_handler(__attribute__ ((unused)) int dummy)
+{
+        running=0;
+        return;
+}
 
 // fake encoder positions to test functions
 static int initFlag = 0; // initialize flag
@@ -45,8 +53,12 @@ int main()
         // thread to get shit
         args_t* talkThread;
         int currentPos;
-	int* projectedPos = calloc(1, sizeof(int));
+      	int* projectedPos = calloc(1, sizeof(int));
         int* finished = calloc(1, sizeof(int));
+
+        // set signal handler so the loop can exit cleanly
+        signal(SIGINT, __signal_handler);
+        running = 1;
 
         // initilize everything
         if(Init()) {
@@ -71,10 +83,10 @@ int main()
 
         int atomicProjectedPos;
 
-        while(rc_get_state() !=  EXITING){
+        while (running){
 
                 // the main code, if going just do this stuff
-                if(rc_get_state()==RUNNING){
+                if (running) {
                   // turn on leds to signal we've started
                   rc_led_set(RC_LED_GREEN, 1);
                   rc_led_set(RC_LED_RED, 0);
