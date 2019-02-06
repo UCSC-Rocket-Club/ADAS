@@ -12,14 +12,13 @@ from Deployment import StepDeployment, GaussianDeployment
 
 
 
-
 class Rocket :
     def __init__ (self, thrust_profile, rocket_mass, motor_mass, propellant_mass, burn_time) :
         self.rocket_time, self.thrust_curve = np.loadtxt(thrust_profile, skiprows=0, unpack=True)
         self.thrust_function = interp1d(self.rocket_time, self.thrust_curve)
         self.wet_mass = motor_mass + rocket_mass + propellant_mass  # all masses are in kg
-        self.dry_mass = motor_mass + rocket_mass 
-        self.propellant_mass = propellant_mass  
+        self.dry_mass = motor_mass + rocket_mass
+        self.propellant_mass = propellant_mass
 
 class Times :
     def __init__ (self, t_burn, t_start, t_apogee, t_step) :
@@ -28,7 +27,7 @@ class Times :
         self.end = 90           # rocket can only be in air for 90s
         self.step = t_step      # time step
         self.launch = 0.0       # time of launch, stays at 0
-        self.launch_date = 0.0  # will be actual time() of launch to use as reference 
+        self.launch_date = 0.0  # will be actual time() of launch to use as reference
         self.MECO = t_burn      # assume burn time is accurate
         self.apogee = t_apogee  # time of apogee
         self.arr = np.arange(self.launch, self.end, self.step)  # array of all time steps
@@ -38,11 +37,11 @@ class Times :
 class Data :
     def __init__ (self, N, fname) :
 
-    	if os.path.exists(fname) :
+        if os.path.exists(fname) :
             # add random number to front of filename to avoid mixing data
-    		fname = str(np.random.randint(100)) + fname
-    		print('Logging data to ' + fname)
-    	self.fname = fname
+            fname = str(np.random.randint(100)) + fname
+            print('Logging data to ' + fname)
+        self.fname = fname
 
         self.h = [0.0]          # [m] height
         self.v = [0.0]          # [m/s] velocity
@@ -70,9 +69,9 @@ class Data :
 # 'plots' is a boolean for plotting data or not
 def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequency, burn_time, t_apogee, t_start=0, plots=True, logfilename='data.csv') :
 
-    
+
     # Define constants
-    R = 8.31447         # [J/mol*K] Universal gas constant 
+    R = 8.31447         # [J/mol*K] Universal gas constant
     M = 0.0289644       # [kg/mol] Molar mass of air
     T = 288             # [K] Temperature of the air at launch altitude ?
     g = 9.81            # [m/s^2]
@@ -100,7 +99,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     depl_arr = GaussianDeployment(t.apogee-t.burn, t.step, 1, 0, 0.50000000000000022)
 
 
-    # Use Riemann sum to get the mass flow rate from the thrust curve 
+    # Use Riemann sum to get the mass flow rate from the thrust curve
     N = 1000            # arbitrary 1000 time steps
     time_steps = linspace(0, burn_time, N)
     total_impulse = 0
@@ -123,7 +122,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     def air_pressure (hi) :
         # return P0 * (T / (T + L0 * hi)) ** (g * M / R * L0)   # non-zero lapse rate
         return P0 * exp(-g * M * hi / (R * T))    # 0 lapse rate
-    
+
     # Returns drag force and deployment percentage
     def drag_curve (vi, ti, i) :
 
@@ -140,22 +139,22 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         drag = drag_function(vi, deployment)
         data.drag.append(drag)
         return drag
-        
+
     def height_step (hi, vi) :
-        return hi + vi * t.step 
-    
+        return hi + vi * t.step
+
     def velocity_step (vi, ai) :
         return vi + ai * t.step
-    
+
     # Generate a_y step
     thrust_curve = [0.0]
-    def acc_step (vi, mi, ti, th, i) : 
+    def acc_step (vi, mi, ti, th, i) :
         thrust_curve.append(Aeoline.thrust_function(ti))
-        return -g + (Aeoline.thrust_function(ti) - drag_curve(vi, ti, i)) * sin(th) / mi  
-    
-    def mass_step (mi, ti) : 
+        return -g + (Aeoline.thrust_function(ti) - drag_curve(vi, ti, i)) * sin(th) / mi
+
+    def mass_step (mi, ti) :
         return mi + mass_flow_rate(ti) * t.step
-    
+
 
 
 
@@ -167,9 +166,9 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     data.log('time,altitude,velocity,acceleration')
 
     for i in range (1, int(t.apogee / t.step)+10) :   # simulate until a bit (10) after apogee
-    
+
         ti = t.arr[i]
-          
+
         data.m.append(mass_step(data.m[i-1], ti))
         data.a.append(acc_step(data.v[i-1], data.m[i], ti, data.theta[i], i))
         data.v.append(velocity_step(data.v[i-1], data.a[i-1]))
@@ -219,10 +218,10 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
 
 
     if plots :
-    	t_arr = t.arr[0:len(data.h)]
+        t_arr = t.arr[0:len(data.h)]
         c = int(t.burn * t.step)
         d = int(t.apogee * t.step)
-    
+
         figure(figsize=(10, 15))
         subplot(3,1,1)
         plot(t_arr, data.drag, '--', color = 'tomato', label = 'Drag')
@@ -232,7 +231,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         legend(loc = 'best')
         xlabel('Time [sec]')
         ylabel('Forces [N]')
-   
+
         figure(figsize=(10, 15))
         subplot(3,1,1)
         plot(t_arr,array(data.h), '--', color = 'black', label = 'Trajectory')
@@ -267,9 +266,9 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         # xlim(0, t_arr[-1]+0.1)
         # ylim(min(data.v[0:i-1])-5, data.v[c] + 40)
         # legend(loc = 'best')
-        
-        
-        
+
+
+
         subplot(3,1,3)
         plot(t_arr[0:-1], data.a[0:-1], '-', color = 'black', label = 'Acceleration')
         #plot(t.arr[c], accel_array[c], 'o', color = 'black', label = 'Main Engine Cutoff')
@@ -280,7 +279,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         grid()
         legend(loc = 'best')
         xlim(0, t_arr[-1]+0.1)
-        
+
         figure(figsize=(10, 15))
         subplot(3,1,1)
         plot(t_arr[0:-1], data.deployment[0:-1], '-', color = 'black', label = 'ADAS Deployment')
@@ -301,8 +300,8 @@ def Get_Drag_Function () :
 
     # Drag coefficient data from flow simulations with states P = 98000 [Pa], T = 283 [K], density = rho = 1.15 [kg/m^2]
     # NOTE: data excludes that for 10 degrees
-    sim_drag_coeffs = [       # DUNCAN ROCKS   :D
-    [0, 0 .4897130673,    0.4605084415,    0.4566277895,    0.457260162,     0.4577140061,    0.4570957994,    0.4566626055,    0.5642732454,    0.4545761375,    0.5717283138],
+    sim_drag_coeffs = [       # DUNCAN ROCKS (LOL JK)  :D
+    [0, 0.4897130673,    0.4605084415,    0.4566277895,    0.457260162,     0.4577140061,    0.4570957994,    0.4566626055,    0.5642732454,    0.4545761375,    0.5717283138],
     [0, 0.5697580479,    0.4602782598,    0.456513712,     0.4567162609,    0.4569759963,    0.456424171,     0.455415689,     0.5583588651,    0.5620175824,    0.5649677736],
     [0, 0.5668725374,    0.4682819154,    0.4469762488,    0.4645024797,    0.4644837072,    0.4639810209,    0.4625354359,    0.556496065,     0.559965656,     0.562991906],
     [0, 0.5638586086,    0.4830633638,    0.4804639344,    0.481315034,     0.4815977549,    0.4822440287,    0.4804765347,    0.5557061413,    0.5589313185,    0.5619646087],
@@ -311,15 +310,15 @@ def Get_Drag_Function () :
     [0, 0.5702164927,    0.4923129991,    0.4892673582,    0.4893980557,    0.4892061981,    0.4885889214,    0.4869239868,    0.5621926732,    0.5655911728,    0.5683652118],
     [0, 0.57425205,      0.5092990664,    0.5063569557,    0.5065504403,    0.5063751519,    0.5060755784,    0.5064538141,    0.5662279936,    0.5694119308,    0.5721914277],
     [0, 0.5792708916,    0.5054756846,    0.50307373,      0.5033542067,    0.5032704218,    0.5022323,       0.5047265086,    0.5713875199,    0.5744315084,    0.5768540181],
-    [0, 0.5788864078,    0.5192401696,    0.5165947143,    0.5170544599,    0.5171723766,    0.5165778943,    0.5151439218,    0.5719901683,    0.5750984082,    0.5780046877]] 
+    [0, 0.5788864078,    0.5192401696,    0.5165947143,    0.5170544599,    0.5171723766,    0.5165778943,    0.5151439218,    0.5719901683,    0.5750984082,    0.5780046877]]
     sim_drag_coeffs = array(sim_drag_coeffs, dtype='float64')
 
     sim_velocities = array([0, 20, 40,  60,  80,  100, 120, 140, 160, 180, 200])  # [m/s] simulation velocities
     # ADAS_deploy_array = array([0, 14.4, 21.6, 28.8, 36, 43.2, 50.4, 57.6, 64.8, 72])     # degrees of deployment for sim data
     sim_deploy_percents = delete(linspace(0, 1, 11), 1)       # simlation deployment percentages
-    
 
-    # Cross-sectional area [m^2] of subscale with fin deployment corresponding to angles in ADAS_deploy_array 
+
+    # Cross-sectional area [m^2] of subscale with fin deployment corresponding to angles in ADAS_deploy_array
     sim_deploy_areas = [0.007127518874, 0.007256550874, 0.007411389274, 0.007566227674, 0.007695259674, 0.007811388474, 0.007914614074, 0.008017839674, 0.008095258874, 0.008185581274]
     # Convert areas from subscale to full scale (only thing that should change in this calc)
     # sim_deploy_areas = [x * 5.5/3.15 for x in sim_deploy_areas]    # convert to full scale
@@ -328,4 +327,3 @@ def Get_Drag_Function () :
     drag_force = 0.5 * 1.15 * transpose( transpose(sim_drag_coeffs * sim_velocities**2) * sim_deploy_areas )
 
     return interp2d(sim_velocities, sim_deploy_percents, drag_force, kind='quintic') # or cubic -> what is O(A(%))?
-
