@@ -24,7 +24,7 @@ class Rocket :
 class Times :
     def __init__ (self, t_burn, t_start, t_apogee, t_step) :
         self.burn = t_burn;     # motor burn time
-        self.start = t_burn + t_start  # time of full deployment
+        self.start = t_burn + t_start  # time to start deployment
         self.end = 90           # rocket can only be in air for 90s
         self.step = t_step      # time step
         self.launch = 0.0       # time of launch, stays at 0
@@ -89,14 +89,15 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     # initialize data object
     data = Data(len(t.arr), logfilename)
     data.m[0] = Aeoline.wet_mass
-    data.theta = np.random.normal(pi/2, pi/1000, len(t.arr))     # theta = pi/2 with some noise (.18 deg)
+    # data.theta = np.random.normal(pi/2, pi/1000, len(t.arr))     # theta = pi/2 with some noise (.18 deg)
 
     # initialize coefficient of drag function and rocket and flight objects
     drag_function = Get_Drag_Function()
 
     # initialize step deployment array
     # depl_arr = StepDeployment((t_apogee-burn_time)/t_res) #, steps_depl, min_depl, max_depl)
-    depl_arr = GaussianDeployment(t.apogee-t.burn, t.step, 0, .5, 1)
+    # GD args : (t_deployment = 15, t_step = 1./25, t_start = 1, t_deploy = 1, max_deploy = 0.8, gauss_steepness = 0.005) :
+    depl_arr = GaussianDeployment(t.apogee-t.burn, t.step, 1, 0, 0.50000000000000022)
 
 
     # Use Riemann sum to get the mass flow rate from the thrust curve 
@@ -129,8 +130,9 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         if ti <= t.start :
             deployment = 0
         elif (t.burn <= ti <= t.apogee) :
-            deployment = depl_arr[0]      # deployment procedure
-            depl_arr.pop(0)
+            # deployment = depl_arr[0]      # deployment procedure
+            # depl_arr.pop(0)
+            deployment = 0.0
         else :
             deployment = 0
 
@@ -154,7 +156,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     def mass_step (mi, ti) : 
         return mi + mass_flow_rate(ti) * t.step
     
-    
+
 
 
     ################################################################
@@ -173,6 +175,11 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         data.v.append(velocity_step(data.v[i-1], data.a[i-1]))
         data.h.append(height_step(data.h[i-1], data.v[i-1]))
 
+        if (abs(ti-t.burn-1) < t.step) :
+            print('height and deployment at MECO')
+            print(data.h[-1])
+            print(data.v[-1])
+
     # Some python silliness (list->np array->flattened->list) to be able to cleanly write to the log file
     data.a = asarray(data.a).flatten().tolist()
     data.v = asarray(data.v).flatten().tolist()
@@ -183,7 +190,33 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     for i in range(0, len(data.a)) :
         data.log(str(t.arr[i]) + ',' + str(data.h[i]) + ',' + str(data.v[i]) + ',' + str(data.a[i]))
 
-    print('Apogee at ' + str(max(data.h)))
+    h_apogee = max(data.h)
+    print('Apogee at ' + str(h_apogee))
+
+
+    # calculation of deducted points (ded)
+    # 1% if 1<e<100ft, 1.5% if 101<e<250, 2.5% if 251<e<500, 3% if 501<e<1000, 4% if 1001<e<2000, fatal if e>2000
+    h_error = h_apogee - 1609.34
+    print('Apogee is ' + str(h_error) + 'm away from desired 1609.34m')
+    h_error = abs(h_error)
+    if h_error < 30.48 :        # < 100ft
+        ded = h_error * .01
+    elif h_error < 76.2 :       # < 250ft
+        ded = h_error * .015
+    elif h_error < 152.4 :      # < 500 ft
+        ded = h_error * .025
+    elif h_error < 304.8 :       # < 1000 ft
+        ded = h_error * .03
+    elif h_error < 609.6 :       # < 2000 ft
+        ded = h_error * .04
+    else :                      # > 2000 ft => disqualified
+        ded = 100
+
+    print ('Flight receives %.1f/100 points' % (100-ded))
+
+
+
+
 
     if plots :
     	t_arr = t.arr[0:len(data.h)]
@@ -286,8 +319,10 @@ def Get_Drag_Function () :
     sim_deploy_percents = delete(linspace(0, 1, 11), 1)       # simlation deployment percentages
     
 
-    # Cross-sectional area [m^2] with fin deployment corresponding to angles in ADAS_deploy_array 
+    # Cross-sectional area [m^2] of subscale with fin deployment corresponding to angles in ADAS_deploy_array 
     sim_deploy_areas = [0.007127518874, 0.007256550874, 0.007411389274, 0.007566227674, 0.007695259674, 0.007811388474, 0.007914614074, 0.008017839674, 0.008095258874, 0.008185581274]
+    # Convert areas from subscale to full scale (only thing that should change in this calc)
+    # sim_deploy_areas = [x * 5.5/3.15 for x in sim_deploy_areas]    # convert to full scale
 
     # Drag force = .5 * rho * A * v^2 * cd [N = kg*m/s^2]
     drag_force = 0.5 * 1.15 * transpose( transpose(sim_drag_coeffs * sim_velocities**2) * sim_deploy_areas )
