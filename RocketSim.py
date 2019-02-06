@@ -14,7 +14,7 @@ from Deployment import StepDeployment, GaussianDeployment
 
 class Rocket :
     def __init__ (self, thrust_profile, rocket_mass, motor_mass, propellant_mass, burn_time) :
-        self.rocket_time, self.thrust_curve = np.loadtxt(thrust_profile, skiprows=0, unpack=True)
+        self.rocket_time, self.thrust_curve = np.loadtxt(thrust_profile, skiprows=1, unpack=True)
         self.thrust_function = interp1d(self.rocket_time, self.thrust_curve)
         self.wet_mass = motor_mass + rocket_mass + propellant_mass  # all masses are in kg
         self.dry_mass = motor_mass + rocket_mass
