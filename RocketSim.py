@@ -38,8 +38,9 @@ class Data :
     def __init__ (self, N, fname) :
 
         if os.path.exists(fname) :
+            open(fname, 'w')
             # add random number to front of filename to avoid mixing data
-            fname = str(np.random.randint(100)) + fname
+            # fname = str(np.random.randint(100)) + fname
             print('Logging data to ' + fname)
         self.fname = fname
 
@@ -55,8 +56,9 @@ class Data :
     def log (self, data) :
         with open(self.fname, "a") as f:
             now = datetime.datetime.now()
-            timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')
-            f.write("{},{}\n".format(timestamp, data))
+            # timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+            # f.write("{},{}\n".format(timestamp, data))
+            f.write("{}\n".format(data))
 
 
 
@@ -321,9 +323,9 @@ def Get_Drag_Function () :
     # Cross-sectional area [m^2] of subscale with fin deployment corresponding to angles in ADAS_deploy_array
     sim_deploy_areas = [0.007127518874, 0.007256550874, 0.007411389274, 0.007566227674, 0.007695259674, 0.007811388474, 0.007914614074, 0.008017839674, 0.008095258874, 0.008185581274]
     # Convert areas from subscale to full scale (only thing that should change in this calc)
-    # sim_deploy_areas = [x * 5.5/3.15 for x in sim_deploy_areas]    # convert to full scale
+    sim_deploy_areas = [x * (5.5**2)/(3.15**2) for x in sim_deploy_areas]    # convert to full scale
 
     # Drag force = .5 * rho * A * v^2 * cd [N = kg*m/s^2]
     drag_force = 0.5 * 1.15 * transpose( transpose(sim_drag_coeffs * sim_velocities**2) * sim_deploy_areas )
 
-    return interp2d(sim_velocities, sim_deploy_percents, drag_force, kind='quintic') # or cubic -> what is O(A(%))?
+    return interp2d(sim_velocities, sim_deploy_percents, drag_force, kind='cubic') 
