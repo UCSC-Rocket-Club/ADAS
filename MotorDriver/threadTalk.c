@@ -44,6 +44,7 @@
      printf("changed the number boi\n");
     }
   }
+	printf("exiting thread");
   // exit cleanly
   pthread_exit(NULL);
 }

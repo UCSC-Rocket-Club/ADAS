@@ -83,7 +83,7 @@ int main()
                   atomicProjectedPos = *talkThread->projectedPos;
                   // execute move motor
                   moveMotor(currentPos, atomicProjectedPos);
-                  printf("current position is: %d\n", currentPos);
+                  //printf("current position is: %d\n", currentPos);
                   rc_usleep(1000);
                   // printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
 		              // see if need to change position
@@ -101,9 +101,9 @@ int main()
         // turn off LEDs and close file descriptors
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
-	*talkThread->exit = 1; // close thread talker
+	      *talkThread->exit = 1; // close thread talker
         rc_led_cleanup();
-	if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
+	      if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
