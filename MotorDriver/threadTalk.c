@@ -1,6 +1,16 @@
 #include "threadTalk.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+
+	static int running = 0;
+	
+	// interrupt handler to catch ctrl-c
+	static void __signal_handler(__attribute__ ((unused)) int dummy)
+	{
+		running=0;
+		return;
+	}
 
 	/*
 	 * start the thread for getting new position values
@@ -14,6 +24,9 @@
 	  arguments->projectedPos = calloc(1, sizeof(int));
 	  arguments->thread = calloc(1, sizeof(pthread_t));
 	  arguments->exit = calloc(1, sizeof(int)); //sets exit to 0
+
+	  signal(SIGINT, __signal_handler);
+	  running = 1;
 
 	  // start thread
 	  if(pthread_create(arguments->thread, NULL, &getProjectedPos, arguments)){
@@ -33,18 +46,18 @@
 	void *getProjectedPos(void *argv){
 	  args_t *input = argv;
 	  printf("started the threadshit boi the finished flag is %d \n", *input->exit);
-  int number;
-  // just run fucker while input args says so
-  while(!*input->exit){
-    // just pull in stuff from the input
-    if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
-    // only change the input if it differs (minnimize lock time)
-    if(number != *input->projectedPos){
-     *input->projectedPos = number; // change to position to move to
-     printf("changed the number boi\n");
-    }
-  }
+	  int number;
+	  // just run fucker while input args says so
+	  while(running){
+		// just pull in stuff from the input
+		if(scanf("%d", &number) == EOF) fprintf(stderr, "There was an error reading from the pipe\n"); // read from buffer
+		// only change the input if it differs (minnimize lock time)
+		if(number != *input->projectedPos){
+		*input->projectedPos = number; // change to position to move to
+		printf("changed the number boi\n");
+	    	}
+  	}
 	printf("exiting thread");
-  // exit cleanly
-  pthread_exit(NULL);
-}
+	  // exit cleanly
+	  pthread_exit(NULL);
+	}

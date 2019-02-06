@@ -32,7 +32,7 @@ static int running = 0;
 
 static void __signal_handler(__attribute__ ((unused)) int dummy)
 {
-        running=0;
+        running = 0;
         return;
 }
 
@@ -55,10 +55,6 @@ int main()
         int currentPos;
       	int* projectedPos = calloc(1, sizeof(int));
         int* finished = calloc(1, sizeof(int));
-
-        // set signal handler so the loop can exit cleanly
-        signal(SIGINT, __signal_handler);
-        running = 1;
 
         // initilize everything
         if(Init()) {
@@ -95,9 +91,8 @@ int main()
                   atomicProjectedPos = *talkThread->projectedPos;
                   // execute move motor
                   moveMotor(currentPos, atomicProjectedPos);
-                  //printf("current position is: %d\n", currentPos);
                   rc_usleep(1000);
-                  // printf("Curretn position: %d\n going to position: %d\n", currentPos,projectedPos);
+                  printf("Curretn position: %d\n going to position: %d\n", currentPos,atomicProjectedPos);
 		              // see if need to change position
 		              fflush(stdout);
                 }
@@ -114,9 +109,9 @@ int main()
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
         printf("exiting\n");
-	      *talkThread->exit = 1; // close thread talker
+	*talkThread->exit = 1; // close thread talker
         rc_led_cleanup();
-	      if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
+	if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
         rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
@@ -146,11 +141,11 @@ int Init(){
     // then there was an invalid argument that needs to be fixed.
     if(rc_kill_existing_process(2.0)<-2) return -1;
     // start signal handler so we can exit cleanly
-    if(rc_enable_signal_handler()==-1){
-            fprintf(stderr,"ERROR: failed to start signal handler\n");
-            return -1;
-    }
-    // initialize pause button
+    
+	// set signal handler so the loop can exit cleanly
+	signal(SIGINT, __signal_handler);
+	running = 1;
+
     if(rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
                                             RC_BTN_DEBOUNCE_DEFAULT_US)){
             fprintf(stderr,"ERROR: failed to initialize pause button\n");
