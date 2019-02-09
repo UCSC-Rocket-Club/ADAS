@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
-#include "threadTalk.h"
 #include "motor.h" //include adas motor shit
 
 #define MOTOR_DRIVER_MARGIN 2 // margin of postition to stop motor and lock in place
@@ -26,9 +25,11 @@
 void on_pause_press();
 void on_pause_release();
 int Init();
+int getProjectedPos();
 int outsideMargin(int current, int projected);
-void moveMotor(int currentPos, int projectedPos);
+void moveMotor(int projectedPos);
 static int running = 0;
+static int initFlag = 0; // initialize flag
 
 static void __signal_handler(__attribute__ ((unused)) int dummy)
 {
@@ -36,8 +37,6 @@ static void __signal_handler(__attribute__ ((unused)) int dummy)
         return;
 }
 
-// fake encoder positions to test functions
-static int initFlag = 0; // initialize flag
 /**
  * This template contains these critical components
  * - ensure no existing instances are running and make new PID file
@@ -50,12 +49,7 @@ static int initFlag = 0; // initialize flag
  */
 int main()
 {
-        // thread to get shit
-        args_t* talkThread;
-        int currentPos;
-      	int* projectedPos = calloc(1, sizeof(int));
-        int* finished = calloc(1, sizeof(int));
-
+        int projectedPos; // position to move to
         // initilize everything
         if(Init()) {
           fprintf(stderr, "Error in initialize\n");
@@ -63,56 +57,30 @@ int main()
           return -1;
         }
 
-        // start thread
-        talkThread = startThread(projectedPos, finished);
-        if(!*talkThread->thread){
-          fprintf(stderr, "error starting thread\n");
-          fflush(stderr);
-          return -1;
-        }
-
-        /* the projected position is constantly being updated in the background
-         * by the other thread
-         * therefore just poll the current location and set to the new location when needed
-         * set the projected location to a temporary varriable to pass in to make the position change atomic
+        /*
+         * The projected position is retrieved through the scanf function
+         * the whole program stalls while the number is being retrieved
          */
-
-        int atomicProjectedPos;
-
         while (running){
-
                 // the main code, if going just do this stuff
-                if (running) {
-                  // turn on leds to signal we've started
-                  rc_led_set(RC_LED_GREEN, 1);
-                  rc_led_set(RC_LED_RED, 0);
-                  // get current position
-                  currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
-                  atomicProjectedPos = *talkThread->projectedPos;
-                  // execute move motor
-                  moveMotor(currentPos, atomicProjectedPos);
-                  rc_usleep(1000);
-                  printf("Curretn position: %d\n going to position: %d\n", currentPos,atomicProjectedPos);
-		              // see if need to change position
-		              fflush(stdout);
-                }
-                // end of actual code, now in hibernate
-                else{
-                        rc_led_set(RC_LED_GREEN, 0);
-                        rc_led_set(RC_LED_RED, 1);
-                        adas_motor_free_spin();
-                }
-                // always sleep at some point
-	}
-
+                // turn on leds to signal we've started
+                rc_led_set(RC_LED_GREEN, 1);
+                rc_led_set(RC_LED_RED, 0);
+                // get motor moveto position
+                projectedPos = getProjectedPos();
+                // execute move motor
+                moveMotor(projectedPos);
+                rc_usleep(1000);
+                //printf("Curretn position: %d\n going to position: %d\n", currentPos,atomicProjectedPos);
+	              // see if need to change position
+	              fflush(stdout);
+          }
+        printf("exiting\n");
         // turn off LEDs and close file descriptors
+        moveMotor(0); // retract motor
         rc_led_set(RC_LED_GREEN, 0);
         rc_led_set(RC_LED_RED, 0);
-        printf("exiting\n");
-	*talkThread->exit = 1; // close thread talker
         rc_led_cleanup();
-	if(pthread_join(*talkThread->thread, NULL)) fprintf(stderr, "error with thread closing"); // close thread
-        rc_button_cleanup();    // stop button handlers
         adas_motor_cleanup();
         rc_remove_pid_file();   // remove pid file LAST
         return 0;
@@ -141,16 +109,10 @@ int Init(){
     // then there was an invalid argument that needs to be fixed.
     if(rc_kill_existing_process(2.0)<-2) return -1;
     // start signal handler so we can exit cleanly
-    
-	// set signal handler so the loop can exit cleanly
-	signal(SIGINT, __signal_handler);
-	running = 1;
 
-    if(rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
-                                            RC_BTN_DEBOUNCE_DEFAULT_US)){
-            fprintf(stderr,"ERROR: failed to initialize pause button\n");
-            return -1;
-    }
+  	// set signal handler so the loop can exit cleanly
+  	signal(SIGINT, __signal_handler);
+  	running = 1;
 
     // initialize motor
     if(adas_motor_init()){
@@ -170,17 +132,20 @@ int Init(){
     // make our own safely.
     rc_make_pid_file();
 
-    // Assign functions to be called when button events occur
-    rc_button_set_callbacks(RC_BTN_PIN_PAUSE,on_pause_press,on_pause_release);
-
     printf("\nPress and release pause button to turn green LED on and off\n");
     printf("hold pause button down for 2 seconds to exit\n");
     // Keep looping until state changes to EXITING
-    rc_set_state(RUNNING);
-
     initFlag = 1;
     }
    return 0;
+}
+
+int getProjectedPos(){
+  int position, number;
+  while(scanf("%d", &number) > 0){
+    position = number;
+  }
+  return position;
 }
 
 /**
@@ -188,11 +153,12 @@ int Init(){
  * call to move motor or stay in place
  * @params: current pos of motor, projected pos of motor
  */
-void moveMotor(int currentPos, int projectedPos){
+void moveMotor(int projectedPos){
+  int currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
   double difference = currentPos - projectedPos;
-//  printf("in movemotor bitch");
+  //  printf("in movemotor bitch");
   while(outsideMargin(currentPos, projectedPos)){
-//	  printf("im moving bitch");
+    //	  printf("im moving bitch");
     adas_motor_set(difference);
     currentPos = rc_encoder_eqep_read(MOTOR_DRIVER_ENCODER_POS);
   }
@@ -216,7 +182,6 @@ int outsideMargin(int current, int projected){
 // am i within the margin
 //	0 = reached the margin so stop
   int inMargin = !(difference < MOTOR_DRIVER_MARGIN && difference > -MOTOR_DRIVER_MARGIN);
-
   // 1 if im under the maximum range
   int inMax =  current < MOTOR_DRIVER_MAX
         && current > -MOTOR_DRIVER_MAX;
