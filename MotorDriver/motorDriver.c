@@ -145,6 +145,7 @@ int getProjectedPos(){
   while(scanf("%d", &number) > 0){
     position = number;
   }
+  fflush(stdin);
   return position;
 }
 
