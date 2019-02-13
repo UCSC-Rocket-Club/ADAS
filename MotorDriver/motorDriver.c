@@ -28,13 +28,16 @@ int Init();
 int getProjectedPos();
 int outsideMargin(int current, int projected);
 void moveMotor(int projectedPos);
+void stopProgram();
 static int running = 0;
 static int initFlag = 0; // initialize flag
+
 
 static void __signal_handler(__attribute__ ((unused)) int dummy)
 {
         running = 0;
         printf("exiting program\n");
+        stopProgram();
         return;
 }
 
@@ -80,15 +83,19 @@ int main()
 	              // see if need to change position
 	              fflush(stdout);
           }
-        printf("exiting\n");
-        // turn off LEDs and close file descriptors
-        moveMotor(0); // retract motor
-        rc_led_set(RC_LED_GREEN, 0);
-        rc_led_set(RC_LED_RED, 0);
-        rc_led_cleanup();
-        adas_motor_cleanup();
-        rc_remove_pid_file();   // remove pid file LAST
         return 0;
+}
+
+void stopProgram(){
+  // turn off LEDs and close file descriptors
+  moveMotor(0); // retract motor
+  rc_led_set(RC_LED_GREEN, 0);
+  rc_led_set(RC_LED_RED, 0);
+  rc_led_cleanup();
+  adas_motor_cleanup();
+  rc_remove_pid_file();   // remove pid file LAST
+  printf("exiting\n");
+  exit(0);
 }
 
 /*
