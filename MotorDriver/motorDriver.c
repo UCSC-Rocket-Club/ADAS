@@ -132,8 +132,7 @@ int Init(){
     // make our own safely.
     rc_make_pid_file();
 
-    printf("\nPress and release pause button to turn green LED on and off\n");
-    printf("hold pause button down for 2 seconds to exit\n");
+    printf("started motor driver\n");
     // Keep looping until state changes to EXITING
     initFlag = 1;
     }
@@ -141,10 +140,10 @@ int Init(){
 }
 
 int getProjectedPos(){
-  int position, number;
-  while(scanf("%d", &number) > 0){
-    position = number;
-  }
+  int position;
+  printf("getting projected position\n");
+  scanf("%d", &position) != EOF;
+  printf("got projected position: %d\n", position);
   fflush(stdin);
   return position;
 }
