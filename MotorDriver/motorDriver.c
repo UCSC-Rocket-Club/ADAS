@@ -34,6 +34,7 @@ static int initFlag = 0; // initialize flag
 static void __signal_handler(__attribute__ ((unused)) int dummy)
 {
         running = 0;
+        printf("exiting program\n");
         return;
 }
 
@@ -57,11 +58,15 @@ int main()
           return -1;
         }
 
+      	// set signal handler so the loop can exit cleanly
+      	signal(SIGINT, __signal_handler);
+      	running = 1;
+
         /*
          * The projected position is retrieved through the scanf function
          * the whole program stalls while the number is being retrieved
          */
-        while (running){
+        while (running == 1){
                 // the main code, if going just do this stuff
                 // turn on leds to signal we've started
                 rc_led_set(RC_LED_GREEN, 1);
@@ -110,9 +115,6 @@ int Init(){
     if(rc_kill_existing_process(2.0)<-2) return -1;
     // start signal handler so we can exit cleanly
 
-  	// set signal handler so the loop can exit cleanly
-  	signal(SIGINT, __signal_handler);
-  	running = 1;
 
     // initialize motor
     if(adas_motor_init()){
@@ -141,11 +143,15 @@ int Init(){
 }
 
 int getProjectedPos(){
-  int position, number;
-  while(scanf("%d", &number) > 0){
-    position = number;
+  int position;
+  char line[1024];
+  char *token;
+  fgets(line, sizeof(line), stdin);
+  token = strtok(line, " ,\n");
+  while(token != NULL){
+    position = atoi(token);
+    token = strtok(NULL, " ,\n");
   }
-  fflush(stdin);
   return position;
 }
 
