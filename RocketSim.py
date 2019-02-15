@@ -9,6 +9,7 @@ from time import time
 import datetime
 import os.path
 from Deployment import StepDeployment, GaussianDeployment
+import pandas
 
 
 
@@ -23,7 +24,7 @@ class Rocket :
 class Times :
     def __init__ (self, t_burn, t_start, t_apogee, t_step) :
         self.burn = t_burn;     # motor burn time
-        self.start = t_burn + t_start  # time to start deployment
+        self.start = t_start  # time to start deployment
         self.end = 90           # rocket can only be in air for 90s
         self.step = t_step      # time step
         self.launch = 0.0       # time of launch, stays at 0
@@ -69,7 +70,7 @@ class Data :
 # 'burn_time' is motor's expected time to MECO, 't_start' is time after MECO to start deployment
 # 't_apogee' is predicted apogee or a large enough number to capture data for flight until apogee+some
 # 'plots' is a boolean for plotting data or not
-def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequency, burn_time, t_apogee, t_start=0, plots=True, logfilename='data.csv') :
+def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequency, burn_time, t_apogee, t_start=0, t_deploy=1, max_deploy=0.8, plots=True, logfilename='data.csv') :
 
 
     # Define constants
@@ -98,7 +99,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     # initialize step deployment array
     # depl_arr = StepDeployment((t_apogee-burn_time)/t_res) #, steps_depl, min_depl, max_depl)
     # GD args : (t_deployment = 15, t_step = 1./25, t_start = 1, t_deploy = 1, max_deploy = 0.8, gauss_steepness = 0.005) :
-    depl_arr = GaussianDeployment(t.apogee-t.burn, t.step, 1, 0, 0.50000000000000022)
+    depl_arr = GaussianDeployment(t.apogee-t.burn, t.step, t.start, t_deploy, max_deploy)
 
 
     # Use Riemann sum to get the mass flow rate from the thrust curve
@@ -150,6 +151,10 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
 
     # Generate a_y step
     thrust_curve = [0.0]
+    df = pandas.read_csv('Fullscale_OR.csv')    # data frame
+    ORTime = df['time'].astype(np.float).values.tolist()
+    ORAcc = df['acceleration'].astype(np.float).values.tolist()
+    OR_acc_function = interp1d(ORTime, ORAcc)
     def acc_step (vi, mi, ti, th, i) :
         thrust_curve.append(Aeoline.thrust_function(ti))
         return -g + (Aeoline.thrust_function(ti) - drag_curve(vi, ti, i)) * sin(th) / mi
@@ -165,7 +170,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     ################################################################
 
     # 1D trajectory plot via Forward Euler Integration
-    data.log('time,altitude,velocity,acceleration')
+    data.log('time,altitude,velocity,acceleration,mass')
 
     for i in range (1, int(t.apogee / t.step)+10) :   # simulate until a bit (10) after apogee
 
@@ -189,7 +194,7 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
 
     # Log data in following form: "datetime,simtime,height,velocity,acceleration"
     for i in range(0, len(data.a)) :
-        data.log(str(t.arr[i]) + ',' + str(data.h[i]) + ',' + str(data.v[i]) + ',' + str(data.a[i]))
+        data.log(str(t.arr[i]) + ',' + str(data.h[i]) + ',' + str(data.v[i]) + ',' + str(data.a[i]) + ',' + str(data.m[i]))
 
     h_apogee = max(data.h)
     print('Apogee at ' + str(h_apogee))
@@ -328,4 +333,4 @@ def Get_Drag_Function () :
     # Drag force = .5 * rho * A * v^2 * cd [N = kg*m/s^2]
     drag_force = 0.5 * 1.15 * transpose( transpose(sim_drag_coeffs * sim_velocities**2) * sim_deploy_areas )
 
-    return interp2d(sim_velocities, sim_deploy_percents, drag_force, kind='cubic') 
+    return interp2d(sim_velocities, sim_deploy_percents, drag_force, kind='cubic')
