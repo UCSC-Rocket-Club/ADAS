@@ -132,9 +132,9 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
         if ti <= t.start :
             deployment = 0
         elif (t.burn <= ti <= t.apogee) :
-            # deployment = depl_arr[0]      # deployment procedure
-            # depl_arr.pop(0)
-            deployment = 0.0
+            deployment = depl_arr[0]      # deployment procedure
+            depl_arr.pop(0)
+            # deployment = 0.0
         else :
             deployment = 0
 
@@ -156,8 +156,13 @@ def num_solver(thrust_profile, rocket_mass, motor_mass, propellant_mass, frequen
     ORAcc = df['acceleration'].astype(np.float).values.tolist()
     OR_acc_function = interp1d(ORTime, ORAcc)
     def acc_step (vi, mi, ti, th, i) :
-        thrust_curve.append(Aeoline.thrust_function(ti))
-        return -g + (Aeoline.thrust_function(ti) - drag_curve(vi, ti, i)) * sin(th) / mi
+        if (ti < (t.MECO + t.start)) :
+            return OR_acc_function(ti)          # use open rocket interpolated acceleration
+        else :
+            return -g - drag_curve(vi,ti,i) / mi
+        # note to selves: log thrust and drag accelerations and compare plots with open rocket's
+        # thrust_curve.append(Aeoline.thrust_function(ti))
+        # return -g + (Aeoline.thrust_function(ti) - drag_curve(vi, ti, i)) * sin(th) / mi
 
     def mass_step (mi, ti) :
         return mi + mass_flow_rate(ti) * t.step
@@ -308,7 +313,7 @@ def Get_Drag_Function () :
     # Drag coefficient data from flow simulations with states P = 98000 [Pa], T = 283 [K], density = rho = 1.15 [kg/m^2]
     # NOTE: data excludes that for 10 degrees
     sim_drag_coeffs = [       # DUNCAN ROCKS (LOL JK)  :D
-    [0, 0.4897130673,    0.4605084415,    0.4566277895,    0.457260162,     0.4577140061,    0.4570957994,    0.4566626055,    0.5642732454,    0.4545761375,    0.5717283138],
+    [0, 0.4897130673,    0.4605084415,    0.4566277895,    0.457260162,     0.4577140061,    0.4570957994,    0.4566626055,    0.5642732454,    0.5680928992,    0.5717283138],
     [0, 0.5697580479,    0.4602782598,    0.456513712,     0.4567162609,    0.4569759963,    0.456424171,     0.455415689,     0.5583588651,    0.5620175824,    0.5649677736],
     [0, 0.5668725374,    0.4682819154,    0.4469762488,    0.4645024797,    0.4644837072,    0.4639810209,    0.4625354359,    0.556496065,     0.559965656,     0.562991906],
     [0, 0.5638586086,    0.4830633638,    0.4804639344,    0.481315034,     0.4815977549,    0.4822440287,    0.4804765347,    0.5557061413,    0.5589313185,    0.5619646087],
