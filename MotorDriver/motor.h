@@ -103,7 +103,7 @@ int adas_motor_free_spin();
  *
  * @return     0 on success, -1 on failure
  */
-int adas_motor_brake(double direction);
+int adas_motor_brake();
 
 
 
