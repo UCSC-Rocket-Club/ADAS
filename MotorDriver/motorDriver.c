@@ -15,7 +15,7 @@
 #include <robotcontrol.h> // includes ALL Robot Control subsystems
 #include "motor.h" //include adas motor shit
 
-#define MOTOR_DRIVER_MARGIN 2 // margin of postition to stop motor and lock in place
+#define MOTOR_DRIVER_MARGIN 0 // margin of postition to stop motor and lock in place
 #define MOTOR_DRIVER_ENCODER_POS 3 // encoder port we're plugging into
 #define MOTOR_DRIVER_CPR 1120 // pulses per revolution of output shaft
 #define MOTOR_DRIVER_MAX  1120/4 // pulses in max deployment, i.e. stay under this pulse the motor outputs 1120 pulses for 1 revolution
@@ -191,16 +191,17 @@ void moveMotor(int projectedPos){
 */
 int outsideMargin(int current, int projected){
 	int difference = current-projected;
+  if(difference == 0) return 0; //dont move
 //	printf("difference is: %d", difference);
 // am i within the margin
 //	0 = reached the margin so stop
-  int inMargin = !(difference < MOTOR_DRIVER_MARGIN && difference > -MOTOR_DRIVER_MARGIN);
+  int inMargin = !(difference <= MOTOR_DRIVER_MARGIN && difference >= -MOTOR_DRIVER_MARGIN);
   // 1 if im under the maximum range
   int inMax =  current < MOTOR_DRIVER_MAX
-        && current > -MOTOR_DRIVER_MAX;
+        && current > 0;
 // only go if im under the maximum range or im trying to turn backward
-  int allowGo = (inMax || (current < 0 && projected > current)
-	       	|| !(current < 0 && projected > current));
+  int allowGo = (inMax || (current <= 0 && projected > current)
+	       	|| (current >= MOTOR_DRIVER_MAX && projected < current));
 //	printf("inmargin: %d, inMax: %d", inMargin, inMax);
   return inMargin && allowGo;
 }
