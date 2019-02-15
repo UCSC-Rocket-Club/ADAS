@@ -107,9 +107,9 @@ DATA = subprocess.Popen(['./IMU/sensors'],stdout=subprocess.PIPE, stdin=subproce
 # thread.start()
 
 # create opjects for logging data, arg is log filename
-sensors = Data_Log('/mnt/sd/sensors.csv')
-encoder = Data_Log('/mnt/sd/encoder.csv')
-events = Data_Log('/mnt/sd/events.csv')
+sensors = Data_Log('/home/debian/sensors.csv')
+encoder = Data_Log('/home/debian/encoder.csv')
+events = Data_Log('/home/debian/events.csv')
 
 
 # Booleans for detection of MECO and Apogee
