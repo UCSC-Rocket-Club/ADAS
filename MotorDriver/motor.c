@@ -48,12 +48,12 @@ int adas_motor_init_freq(int pwm_frequency_hz)
 
 	// set up gpio pins
 	if(unlikely(rc_gpio_init(DIRECTION_A, GPIOHANDLE_REQUEST_OUTPUT))){
-		fprintf(stderr,"ERROR in adas_motor_init, failed to set up gpio %d,%d for direction\n", DIRECTION);
+		fprintf(stderr,"ERROR in adas_motor_init, failed to set up gpio %d,%d for direction\n", DIRECTION_A);
 		return -1;
 	}
 
 	if(unlikely(rc_gpio_init(DIRECTION_B, GPIOHANDLE_REQUEST_OUTPUT))){
-		fprintf(stderr,"ERROR in adas_motor_init, failed to set up gpio %d,%d for direction\n", DIRECTION);
+		fprintf(stderr,"ERROR in adas_motor_init, failed to set up gpio %d,%d for direction\n", DIRECTION_B);
 		return -1;
 	}
 
@@ -108,7 +108,7 @@ int adas_motor_set(double duty)
 	dir = _getDirection(duty);
 	if (moving == dir) return 0; // if doing as is just go
 
-	
+
 	// turn off motor while changing direction
 	if(unlikely(rc_gpio_set_value(SPEED, 0))){
 		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio speed pin %d,%d\n", SPEED);
@@ -116,17 +116,17 @@ int adas_motor_set(double duty)
 	}
 
 
-		
+
 	// set direction
 
 	if (dir)
 	{
 		if(unlikely(rc_gpio_set_value(DIRECTION_A, 1))){
-			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_A);
 			return -1;
 		}
 		if(unlikely(rc_gpio_set_value(DIRECTION_B, 0))){
-			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_B);
 			return -1;
 		}
 	}
@@ -134,15 +134,15 @@ int adas_motor_set(double duty)
 	else
 	{
 		if(unlikely(rc_gpio_set_value(DIRECTION_A, 0))){
-			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_A);
 			return -1;
 		}
 		if(unlikely(rc_gpio_set_value(DIRECTION_B, 1))){
-			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+			fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_B);
 			return -1;
 		}
 	}
-	
+
 
 	// set speed
 	if(unlikely(rc_gpio_set_value(SPEED, 1))){
@@ -210,16 +210,16 @@ int adas_motor_brake()
 
 
 	if(unlikely(rc_gpio_set_value(DIRECTION_A, 0))){
-		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_A);
 		return -1;
 	}
 	if(unlikely(rc_gpio_set_value(DIRECTION_B, 0))){
-		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION_B);
 		return -1;
 	}
 
 	if(unlikely(rc_gpio_set_value(SPEED, 0))){
-		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", DIRECTION);
+		fprintf(stderr,"ERROR in adas_motor_set, failed to write to gpio direction pin %d,%d\n", SPEED);
 		return -1;
 	}
 	moving = -1;
