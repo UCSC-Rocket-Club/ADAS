@@ -1,11 +1,6 @@
 #include "Arduino.h"
 #include "ADASmotor.h"
 
-boolean initFlag = false;
-
-int currentDir = 0;
-float currentSpeed = 0;
-
 Motor::Motor(int pwm, int dir){
   pwmPin = pwm;
   dirPin = dir;
@@ -13,7 +8,7 @@ Motor::Motor(int pwm, int dir){
   pinMode(dirPin, OUTPUT);
 }
 
-Motor::Motor(int pwm, int dir, int gnd);{
+Motor::Motor(int pwm, int dir, int gnd){
   pinMode(gnd, OUTPUT);
   digitalWrite(gnd, LOW);
   Motor(pwm, dir);
@@ -24,12 +19,12 @@ Motor::Motor(int pwm, int dir, int gnd);{
 // moves the motor counter clockwise if direction is positive
 // normalizes speed to between 0 and 1, if above or below it becomes
 // 1 or 0 respectively
-Motor::moveMotor(int dir, float speed){
+void Motor::moveMotor(boolean dir, float speed){
   if(!initFlag || dir == currentDir || speed == currentSpeed){
     // error checking and optimization
     return;
   }
-  if(dir > 0){
+  if(dir){
     digitalWrite(dirPin, HIGH);
   }
   else{
@@ -41,7 +36,7 @@ Motor::moveMotor(int dir, float speed){
 }
 
 // stops the motor
-Motor::stopMotor(){
+void Motor::stopMotor(){
   if (!initFlag) {// error checking
     return;
   }
