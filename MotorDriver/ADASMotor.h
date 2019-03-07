@@ -12,8 +12,6 @@
 class Motor
 {
   public:
-    // initialize motor with speed and dir pins respectively
-    Motor(int pwm, int dir);
     //optionally configure motor driver gnd pin,
     //be careful gnd pin doesnt sink too much current
     Motor(int pwm, int dir, int gnd);
@@ -31,7 +29,7 @@ class Motor
   private:
     int pwmPin;
     int dirPin;
-    boolean initFlag = false;
+    bool initFlag = false;
     int currentDir = 0;
     float currentSpeed = 0;
 };
