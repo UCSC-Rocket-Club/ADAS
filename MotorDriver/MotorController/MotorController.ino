@@ -9,15 +9,7 @@
 // initialize motor controller for adas
 MotorController adas(ENCODERA, ENCODERB, MOTORPWM, MOTORDIR, MOTORGND);
 
-
-int projectedPosition = 0;
 boolean retract = false;
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("started shit"); 
-}
-
 void loop() {
   int temp, pos = 0;
   if (retract){
