@@ -46,16 +46,16 @@ void MotorController::attemptPosition(int pos){
   bool direction;
   // if im outside the margin of where I wanna go
   // then move
-  if (!outsideMargin(currentPos, pos)) motor.stopMotor();
-
-  // otherwise if within margin halt the motor
-  else {
+  if (outsideMargin(currentPos, pos)) {
     // if where we need to go is forward of where we are, true
     // otherwise false
     direction = (pos - currentPos) > 0 ? false : true;
     // deploy to that position at full speed
     motor.moveMotor(direction, 1.0);
   }
+
+  // otherwise if within margin halt the motor
+  else motor.stopMotor();
   return;
 }
 
@@ -90,18 +90,20 @@ void MotorController::motorDone(){
  * input: the current position, the projected position
  *
  * output: 1 if im outside margin and need to move, 0 otherwise
+ * i.e. output 1 if i need to keep going or my projected position is ok to move towards
 */
 bool MotorController::outsideMargin(int current, int projected){
 	int difference = current-projected;
 // am i within the margin
 //	0 = reached the margin so stop
-  int inMargin = !(difference < MOTOR_DRIVER_MARGIN && difference > -MOTOR_DRIVER_MARGIN);
+  int outsideMargin = !(difference < MOTOR_DRIVER_MARGIN && difference > -MOTOR_DRIVER_MARGIN);
 
   // 1 if im under the maximum range
-  int inMax = current < MOTOR_DRIVER_MAX  && current > -MOTOR_DRIVER_MAX;
+  int withinMax = current <= MOTOR_DRIVER_MAX  && current >= 0;
+
 // only go if im under the maximum range or im trying to turn backward
-  int allowGo = (inMax || (current < 0 && projected > current)
-	       	|| !(current < 0 && projected > current));
+  int allowGo = (withinMax || (current <= 0 && projected > current)
+	       	|| (current >= MOTOR_DRIVER_MAX && projected < current));
 //	printf("inmargin: %d, inMax: %d", inMargin, inMax);
-  return inMargin && allowGo;
+  return outsideMargin && allowGo;
 }

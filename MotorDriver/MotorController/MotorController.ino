@@ -9,20 +9,30 @@
 // initialize motor controller for adas
 MotorController adas(ENCODERA, ENCODERB, MOTORPWM, MOTORDIR, MOTORGND);
 
-boolean retract = false;
+bool retract = false;
+int projectedPosition;
+int temp, pos;
+void setup(){
+  Serial.begin(9600);
+  Serial.println("shit fuck");
+  temp = 0;
+  pos = 0;
+}
+
+
 void loop() {
-  int temp, pos = 0;
+  
   if (retract){
     // fully retract motor
     adas.motorDone();
     exit(0);
   }
-  else{/*
+  else{
     temp = adas.position();
     if(temp != pos){
       Serial.println(temp);
       pos = temp;
-    }*/
+    }
     adas.attemptPosition(projectedPosition);
   }
 }
