@@ -1,0 +1,4 @@
+Motor KEYWORD1
+test KEYWORD2
+moveMotor KEYWORD2
+stopMotor KEYWORD2

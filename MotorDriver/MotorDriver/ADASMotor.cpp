@@ -2,12 +2,12 @@
 #include "ADASmotor.h"
 
 Motor::Motor(int pwm, int dir, int gnd){
+  pwmPin = pwm;
+  dirPin = dir;
   pinMode(gnd, OUTPUT);
   pinMode(pwmPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   digitalWrite(gnd, LOW);
-  pwmPin = pwm;
-  dirPin = dir;
   initFlag = true;
 }
 
@@ -21,11 +21,13 @@ void Motor::moveMotor(boolean dir, float speed){
     // error checking and optimization
     return;
   }
-  if(dir){
+  if(dir == true){
     digitalWrite(dirPin, HIGH);
+    //Serial.println("pin is fucking high and it is %d");
   }
   else{
     digitalWrite(dirPin, LOW);
+    //Serial.println("pin is fucking LOWWWWWWW");
   }
   if (speed < 0) speed = 0; // make speed a possitive number
   speed = speed > 1 ? 1 : speed; // keep speed below 1
@@ -39,5 +41,5 @@ void Motor::stopMotor(){
   if (!initFlag) {// error checking
     return;
   }
-  digitalWrite(pwmPin, LOW);
+  analogWrite(pwmPin, 0);
 }

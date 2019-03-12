@@ -14,10 +14,11 @@ Released into the public domain.
 class MotorController
 {
   public:
+
     // constructor function, takes in encoder and motor object
     // cant really do initialization checks in this shit
     // so assumes they're initialized correctly (bad practice i know get off my ass)
-    MotorController(Encoder *encoder, Motor *motor);
+    MotorController(int encoderA, int encoderB, int motorPwm, int motorDir, int motorGnd);
 
     // attempt to move to a position
     // THERE IS NO LOOPING IN THIS FUNCTION
@@ -31,11 +32,14 @@ class MotorController
     // fully retract motor
     // loops, nothing else will be done to the motor until it is fully retracted
     void motorDone();
+
+    // return motor position
+    int position();
   private:
-    Encoder *encoder;
-    Motor *motor;
-    boolean initFlag = false;
-    boolean outsideMargin(int current, int projected);
+    Encoder encoder;
+    Motor motor;
+    bool initFlag = false;
+    bool outsideMargin(int current, int projected);
 
 };
 

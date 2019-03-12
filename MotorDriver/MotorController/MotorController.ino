@@ -1,30 +1,38 @@
-#include <ADASMotor.h>
 #include <MotorController.h>
-#include <Encoder.h>
+
+#define ENCODERA 22
+#define ENCODERB 23
+#define MOTORPWM 16
+#define MOTORDIR 15
+#define MOTORGND 17 
+
+// initialize motor controller for adas
+MotorController adas(ENCODERA, ENCODERB, MOTORPWM, MOTORDIR, MOTORGND);
+
 
 int projectedPosition = 0;
 boolean retract = false;
 
-
 void setup() {
   Serial.begin(9600);
-  Encoder encoder(22, 23);
-  Motor motor(16, 15, 17);
-  // initialize motor controller
-  MotorController adas(encoder, motor);
+  Serial.println("started shit"); 
 }
 
 void loop() {
+  int temp, pos = 0;
   if (retract){
     // fully retract motor
     adas.motorDone();
-    exit();
+    exit(0);
   }
-  else{
-    attemptPosition(projectedPosition);
+  else{/*
+    temp = adas.position();
+    if(temp != pos){
+      Serial.println(temp);
+      pos = temp;
+    }*/
+    adas.attemptPosition(projectedPosition);
   }
-  
-
 }
 
 /*
@@ -48,9 +56,11 @@ void serialEvent() {
     // get the new byte:
     char inChar = (char)Serial.read();
     if(isdigit(inChar)){
-      temp = atoi(inChar);
+      //Serial.println("its a char!");
+      temp = inChar - '0';
       number *= 10; // shift a tens place to add in new number
       number += temp; // add in temp number
+      //Serial.println(number);
     }
     
     // if the incoming character is a newline
