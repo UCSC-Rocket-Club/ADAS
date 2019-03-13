@@ -31,6 +31,7 @@ void Motor::moveMotor(boolean dir, float speed){
   }
   if (speed < 0) speed = 0; // make speed a possitive number
   speed = speed > 1 ? 1 : speed; // keep speed below 1
+  // if (speed > 0) digitalWrite
   analogWrite(pwmPin, static_cast<int>(speed * 255.0));
   currentDir = dir;
   currentSpeed = speed;
@@ -42,4 +43,5 @@ void Motor::stopMotor(){
     return;
   }
   analogWrite(pwmPin, 0);
+  currentSpeed = 0;
 }

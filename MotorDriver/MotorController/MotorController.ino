@@ -9,7 +9,8 @@
 // initialize motor controller for adas
 MotorController adas(ENCODERA, ENCODERB, MOTORPWM, MOTORDIR, MOTORGND);
 
-bool retract = false;
+
+bool shit, retract = false;
 int projectedPosition;
 int temp, pos;
 void setup(){
@@ -21,7 +22,12 @@ void setup(){
 
 
 void loop() {
-  
+
+  if(shit) {
+    Serial.write("the fucking projected pos is ");
+    Serial.println(projectedPosition);
+    shit = false;
+  }
   if (retract){
     // fully retract motor
     adas.motorDone();
@@ -68,6 +74,7 @@ void serialEvent() {
     // if the incoming character is a newline
     // update the global projected position
     else if (inChar == '\n') {
+      shit = true;
       projectedPosition = number;
     }
     

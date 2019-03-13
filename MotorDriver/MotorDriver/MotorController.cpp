@@ -12,6 +12,7 @@ int motorDir, int motorGnd):
 encoder(encoderA, encoderB), motor(motorPwm, motorDir, motorGnd)
 {
   initFlag = true;
+  pinMode(20, OUTPUT);
   Serial.println("fucker");
 }
 
@@ -42,8 +43,10 @@ void MotorController::attemptPosition(int pos){
     Serial.println("made it");
   }
   motor.stopMotor();*/
+
   int currentPos = (int) encoder.read(); // get current positon
   bool direction;
+  // bool out =;
   // if im outside the margin of where I wanna go
   // then move
   if (outsideMargin(currentPos, pos)) {
@@ -51,11 +54,15 @@ void MotorController::attemptPosition(int pos){
     // otherwise false
     direction = (pos - currentPos) > 0 ? false : true;
     // deploy to that position at full speed
+    digitalWrite(20, HIGH);
     motor.moveMotor(direction, 1.0);
   }
 
   // otherwise if within margin halt the motor
-  else motor.stopMotor();
+  else{
+    motor.stopMotor();
+    digitalWrite(20,LOW);
+  }
   return;
 }
 
