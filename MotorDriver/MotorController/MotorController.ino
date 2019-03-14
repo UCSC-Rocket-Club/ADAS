@@ -1,7 +1,7 @@
 #include <MotorController.h>
 
-#define ENCODERA 22
-#define ENCODERB 23
+#define ENCODERA 23 // channel A
+#define ENCODERB 22 // channel B
 #define MOTORPWM 16
 #define MOTORDIR 15
 #define MOTORGND 17 
