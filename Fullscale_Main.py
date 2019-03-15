@@ -1,41 +1,13 @@
-# Code that logs data and determines deployment percentages for subscale flight
-# To be implemented on Dec. 8 by UCSC Rocket Team 2019
+
+# Code that obtains and logs data and communicates deployment percentages for flight
+# To be implemented on March 16 by UCSC Rocket Team 2019
 
 import time
-import subprocess
 import datetime
-import os
-import signal
+import serial
 from Deployment import StepDeployment
+from IMU/gyroscope import IMU
 
-# Queue needed to read lines from encoder without holding up Py program
-# https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-# try/except not needed if Py version is known/set
-import sys
-try:
-    from queue import Queue, Empty
-except ImportError:
-    from Queue import Queue, Empty  # python 2.x
-
-ON_POSIX = 'posix' in sys.builtin_module_names
-
-def enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
-        queue.put(line)
-    out.close()
-
-def signal_handler(sig, frame):
-    print("You exited the program!\n")
-    os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
-    os.killpg(os.getpgid(MOTOR.pid), signal.SIGINT) 
-    sensors.close()
-    events.close()
-    encoder.close()
-    exit(0)
-
-# this will handle any Ctrl+C that is sent to the program
-# so it correclty shutdowns the processes it opened
-signal.signal(signal.SIGINT, signal_handler)
 
 class Data_Log :
     def __init__ (self, fname) :
@@ -53,12 +25,12 @@ class Data_Log :
         self.file.close()
 
 
-# give deployment % (=0 unless between MECO and apogee events)
+# returns deployment % (=0 unless between MECO and apogee events)
 def deployment () :
 
-    if MECO == False :
+    if not MECO :
         deployment = 0              # no deployment before MECO
-    elif Apogee == False:   
+    elif not Apogee :   
         deployment = depl_arr[0]    # grab next deployment percentage
         depl_arr.pop(0)             # remove used deployment value
     else :
@@ -69,24 +41,24 @@ def deployment () :
 
 
 
-# define constants (currently using J420 motor)
-
-g = 9.81            # [m/s^2]gravitational constant 
-HZ = 25             # [1/s] frequency of updates
-time_res = 1./25    # [s] expecting motor to operate at 25 Hz
+# define constants 
+HZ = 25             # [s^-1] frequency of updates
+dt = 1. / HZ        # [s] expecting motor to operate at 25 Hz
 t_burn = 1.54       # [s] expected time for MECO
-# t_start = 1.      # [s] when to start deployment after MECO
-t_apogee = 12.      # [s] expected time to reach apogee (actually 11.9 for J420)
+t_start = 1.        # [s] when to start deployment after MECO
+t_apogee = 20.      # [s] expected time to reach apogee (actually 11.9 for J420)
 t_end = 90          # [s] max time that rocket should be in air
-t_arr = [] 
 
 
+# define near-zero buffers for detection of launch, MECO, and apogee
+buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
+g_thresh = 1.5      # [Gs] threshhold to detect launch (expect max of 10)
+mile = 1609.34      # [m] 1 mile
 
-# populating array with time steps
-for i in range(0, HZ*t_end) :
-    t_arr.append(i * time_res)
-t_arr.append(t_end)
 
+# Booleans for detection of MECO and Apogee
+MECO = False
+Apogee = False
 
 
 # get deployment array from module
@@ -97,123 +69,109 @@ t_arr.append(t_end)
 depl_arr = StepDeployment((t_apogee-t_burn)/time_res) #, steps_depl, min_depl, max_depl)
 
 
-# open pipes to C programs to read IMU data and communicate with the motor 
-DATA = subprocess.Popen(['./IMU/sensors'],stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)     
-# MOTOR = subprocess.Popen(['./MotorDriver/motorDriver'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1, close_fds=ON_POSIX)  
-''' Note about close_fds from docs: 
- If close_fds is true, all file descriptors except 0, 1 and 2 will be closed before the child process is executed. 
- Unix only). Or, on Windows, if close_fds is true then no handles will be inherited by the child process. 
- Note that on Windows, you cannot set close_fds to true and also redirect the standard handles by setting stdin, stdout or stderr. '''
- # needed? needed on DATA pipe ??
-# queue = Queue()
-# thread = Thread(target=enqueue_output, args=(MOTOR.stdout, queue))
-# thread.daemon = True # thread dies with the program
-# thread.start()
-
 # create opjects for logging data, arg is log filename
 sensors = Data_Log('/home/debian/sensors.csv')
-encoder = Data_Log('/home/debian/encoder.csv')
 events = Data_Log('/home/debian/events.csv')
 
 
-# Booleans for detection of MECO and Apogee
-MECO = False
-Apogee = False
+# Setting up IMU
+imu = IMU()
+index_vert_acc = 2      # index of vertical acceleration, read in [Gs]
 
-# define near-zero buffers for detection of launch, MECO, and apogee
-buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
-buffer_vel = .2     # [m/s] approx vel at MECO (How good is BB resolution??)
-g_thresh = 1.5      # [gs] threshhold to detect launch (expect max of 10)
+# Open serial communication with motor driver
+motor = serial.Serial('/dev/ttyS0', 9600)
+
 
 # want to store (some) data before launch is detected
 launch_data = []    # holds pre-launch data
-num_data_pts = 20   # arbitrary number of points to catch data pre-launch detection
-                    # should be t(g_thresh) * HZ
+num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
-time.sleep(5)       # It takes a while for the sensors to fire up.
-                    
-index_vert_vel = 1      # index 1 is the vertical velocity
-index_vert_acc = 4      # index 4 is the kalman filtered Vertical Accelaration m/s^2
-index_K_vert_acc = 7    # index 7 is the raw Z-axis acceleration in m/s^2
 
-# Waiting on launch pad, measuring acceleration to detect launch with
+# Waiting on launch pad measure acceleration to detect launch with
 while True :
-    data = DATA.stdout.readline().strip()   # get sensor output data
-    dat = data.split(",")  # get vertical acc data only for use
-    if len(dat) < 10:      # go to next line if reading headers/text rather than data
-        continue
+
+    # only read every dt seconds
+    try :
+        time.sleep(dt - (time.time()-t_read))
+        t_read = time.time()
+    except :
+        pass
+
+    # read data from IMU
+    acc = imu.get_accel_data()
+    gyr = imu.get_gyro_data()
 
     # store and overwrite num_data_pts of data
-    launch_data.append(data)
+    launch_data.append([acc, gyr])
     if len(launch_data) > num_data_pts :
         launch_data.pop(0)
 
-    # check threshhold against both Kalman- and non-filtered vertical acceleration data
-    if (float(dat[index_vert_acc]) >= g_thresh * g) or (float(dat[index_K_vert_acc]) >= g_thresh * g):
-        events.log('Launch')     # log launch event
-        # tell motor code to start!!
+    # check threshhold against vertical acceleration data
+    if acc[index_vert_acc] >= g_thresh :
+        events.log('\n-----LAUNCH-----\n')     # log launch event
         break
 
-# store the data at launch (the most recent )
+t_launch = time.time()
+
+# store the data at launch (the most recent)
 for i in range(num_data_pts):
     sensors.log(launch_data[i])
 
 
-sensors.log("\n----IN AIR-----\n")
-
-start_air_time = time.time()
+sensors.log("\n-----IN AIR-----\n")
 
 # in air, logging data throughout
-for i in range(1, len(t_arr)+1) :
-    # ti = t_arr[i]   # current time
+for i in range(0, t_end*HZ) :
 
-    data = DATA.stdout.readline().strip() # get sensor data through pipe 
-    dat = data.split(",")                 # parse data by commas
-    sensors.log(data)                     # write sensor data to file
+    # only read every dt seconds
+    try :
+        time.sleep(dt - (time.time()-t_read))
+    except :
+        pass 
+    t_curr = time.time()
+    t_flight = t_curr - t_launch
+
+
+    # get acceleration and gyroscope data
+    acc = imu.get_accel_data()
+    gyr = imu.get_gyro_data()
     
-    # get vertical velocity and acceleration to check for events
-    v = dat[index_vert_vel]     # [m/s]
-    a = dat[index_vert_acc]     # [m/s^2]
+    # write sensor data to file
+    sensors.log([acc, gyr])
 
-    MOTOR.stdin.write(deployment())     # pipe deployment % to the motor code
-    MOTOR.stdin.flush()
+    # write deployment to motor
+    motor.write(deployment())
     
-    # to avoid holdup - need to do for data reading ? 
-    # https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-    # read line without blocking
-    try :  line = q.get_nowait() # or q.get(timeout=.1)
-    except Empty :
-        print('no output yet')  # do nothing
-    else: # got line
-        encoder.log(MOTOR.stdout.readline().strip()) # write encoding from the driver to file
-
     
     # detect MECO as point when a is only gravity and drag or as the burn time
     if not MECO :
-        if (a <= - (g + buffer_acc) or (time.time() - start_air_time > t_burn)):
-            events.log('MECO ')     # log MECO event
-            sensors.log("\n----MECO-----\n")
+        if (a+1) <= -buffer_acc or t_flight >= t_burn :
+            events.log("\n-----MECO-----\n")
+            sensors.log("\n-----MECO-----\n")
+            
             MECO = True   
             continue
 
 
-    # detect apogee with velocity (when negative) CHANGE (use pressure instead?)
-    if (not Apogee) and MECO :
-        if (v < buffer_vel or (time.time() - start_air_time) > t_apogee):
-            events.log('Apogee ')     # log apogee event
-            sensors.log("\n----APOGEE-----\n")
+    # use altimeter data to detect apogee
+    # alt = 
+
+    # detect APOGEE with velocity (when negative) CHANGE (use pressure instead?)
+    if MECO and not Apogee :
+        if alt >= mile or t_flight >= t_apogee :
+            events.log("\n-----APOGEE-----\n")
+            sensors.log("\n-----APOGEE-----\n")
+            
             Apogee = True 
             continue    # continue to record data during descent
 
 
 
-# send kill signal to exit c program cleanly
-os.killpg(os.getpgid(DATA.pid), signal.SIGINT) 
-os.killpg(os.getpgid(MOTOR.pid), signal.SIGINT) 
-
 # closing all the files
 sensors.close()
 events.close()
-encoder.close()
+
+# close serial communication with motor driver
+motor.close()
 
 exit(0)
