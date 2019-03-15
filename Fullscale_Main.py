@@ -26,12 +26,13 @@ class Data_Log :
 
 
 # returns deployment % (=0 unless between MECO and apogee events)
+full_depl = 900
 def deployment () :
 
     if not MECO :
         deployment = 0              # no deployment before MECO
     elif not Apogee :   
-        deployment = depl_arr[0]    # grab next deployment percentage
+        deployment = full_depl * depl_arr[0]    # grab next deployment percentage
         depl_arr.pop(0)             # remove used deployment value
     else :
         deployment = 0              # no deployment after apogee
@@ -44,9 +45,9 @@ def deployment () :
 # define constants 
 HZ = 25             # [s^-1] frequency of updates
 dt = 1. / HZ        # [s] expecting motor to operate at 25 Hz
-t_burn = 1.54       # [s] expected time for MECO
+t_burn = 2.49       # [s] expected time for MECO
 t_start = 1.        # [s] when to start deployment after MECO
-t_apogee = 20.      # [s] expected time to reach apogee (actually 11.9 for J420)
+t_apogee = 17.74    # [s] expected time to reach apogee (actually 11.9 for J420)
 t_end = 90          # [s] max time that rocket should be in air
 
 
@@ -70,13 +71,16 @@ depl_arr = StepDeployment((t_apogee-t_burn)/time_res) #, steps_depl, min_depl, m
 
 
 # create opjects for logging data, arg is log filename
-sensors = Data_Log('/home/debian/sensors.csv')
-events = Data_Log('/home/debian/events.csv')
+sensors = Data_Log('/home/py/sensors.csv')
+events = Data_Log('/home/py /events.csv')
 
 
 # Setting up IMU
 imu = IMU()
 index_vert_acc = 2      # index of vertical acceleration, read in [Gs]
+
+# Setting up Altimeter
+alt = MS5611()
 
 # Open serial communication with motor driver
 motor = serial.Serial('/dev/ttyS0', 9600)
@@ -92,10 +96,11 @@ while True :
 
     # only read every dt seconds
     try :
-        time.sleep(dt - (time.time()-t_read))
-        t_read = time.time()
+        time.sleep(dt - (time.time()-t_read))   # 0.005s error
     except :
         pass
+
+    t_read = time.time()
 
     # read data from IMU
     acc = imu.get_accel_data()
@@ -142,8 +147,9 @@ for i in range(0, t_end*HZ) :
     # write deployment to motor
     motor.write(deployment())
     
+    # 'string' +'\n' .encode()
     
-    # detect MECO as point when a is only gravity and drag or as the burn time
+    # detect MECO as point when a is only gravity and drag or as the expected burn time
     if not MECO :
         if (a+1) <= -buffer_acc or t_flight >= t_burn :
             events.log("\n-----MECO-----\n")
@@ -154,11 +160,12 @@ for i in range(0, t_end*HZ) :
 
 
     # use altimeter data to detect apogee
-    # alt = 
+    alt.read()
+    z = alt.getAltitude()
 
-    # detect APOGEE with velocity (when negative) CHANGE (use pressure instead?)
+    # detect APOGEE with altitude or precalculated time
     if MECO and not Apogee :
-        if alt >= mile or t_flight >= t_apogee :
+        if z >= mile or t_flight >= t_apogee :
             events.log("\n-----APOGEE-----\n")
             sensors.log("\n-----APOGEE-----\n")
             
