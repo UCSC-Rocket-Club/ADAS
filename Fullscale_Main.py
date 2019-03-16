@@ -6,7 +6,8 @@ import time
 import datetime
 import serial
 from Deployment import StepDeployment
-from IMU/gyroscope import IMU
+from gyroscope import IMU
+from MS5611 import MS5611
 
 
 class Data_Log :
@@ -26,7 +27,7 @@ class Data_Log :
 
 
 # returns deployment % (=0 unless between MECO and apogee events)
-full_depl = 900
+full_depl = 9
 def deployment () :
 
     if not MECO :
@@ -61,13 +62,14 @@ mile = 1609.34      # [m] 1 mile
 MECO = False
 Apogee = False
 
-
 # get deployment array from module
 # constants for deployment calculation    
 # min_depl = 0.10     # [%] minimum deployment
 # max_depl = 0.80     # [%] maximum deployment
 # steps_depl = 4      # num steps in stair function between min and max depl
-depl_arr = StepDeployment((t_apogee-t_burn)/time_res) #, steps_depl, min_depl, max_depl)
+depl_arr = StepDeployment((t_apogee-t_burn)/dt) #, steps_depl, min_depl, max_depl)
+depl_arr = [int(((float(i)/max(depl_arr)) * 9)) for i in depl_arr]
+print(depl_arr)
 
 
 # create opjects for logging data, arg is log filename
@@ -145,7 +147,8 @@ for i in range(0, t_end*HZ) :
     sensors.log([acc, gyr])
 
     # write deployment to motor
-    motor.write(deployment())
+    val_write = deployment()
+    motor.write(round(val_write))
     
     # 'string' +'\n' .encode()
     
