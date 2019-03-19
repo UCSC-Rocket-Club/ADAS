@@ -27,13 +27,12 @@ class Data_Log :
 
 
 # returns deployment % (=0 unless between MECO and apogee events)
-full_depl = 9
 def deployment () :
 
     if not MECO :
         deployment = 0              # no deployment before MECO
     elif not Apogee :   
-        deployment = full_depl * depl_arr[0]    # grab next deployment percentage
+        deployment = depl_arr[0]    # grab next deployment percentage
         depl_arr.pop(0)             # remove used deployment value
     else :
         deployment = 0              # no deployment after apogee
@@ -54,7 +53,7 @@ t_end = 90          # [s] max time that rocket should be in air
 
 # define near-zero buffers for detection of launch, MECO, and apogee
 buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
-g_thresh = 1.5      # [Gs] threshhold to detect launch (expect max of 10)
+g_thresh = 2      # [Gs] threshhold to detect launch (expect max of 10)
 mile = 1609.34      # [m] 1 mile
 
 
@@ -73,25 +72,33 @@ print(depl_arr)
 
 
 # create opjects for logging data, arg is log filename
-sensors = Data_Log('/home/py/sensors.csv')
-events = Data_Log('/home/py /events.csv')
+sensors = Data_Log('/home/pi/sensors.csv')
+events = Data_Log('/home/pi/events.csv')
+depFile = Data_Log('/home/pi/deployment.csv')
 
+depFile.log('----------- Deployment Array is -------------')
+depFile.log(depl_arr)
 
 # Setting up IMU
 imu = IMU()
-index_vert_acc = 2      # index of vertical acceleration, read in [Gs]
+index_vert_acc = 1      # index of vertical acceleration, read in [Gs]
 
 # Setting up Altimeter
-alt = MS5611()
+alt = MS5611(i2c=0x77)
 
 # Open serial communication with motor driver
-motor = serial.Serial('/dev/ttyS0', 9600)
+motor = serial.Serial('/dev/ttyS0', 115200)
 
 
 # want to store (some) data before launch is detected
 launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
+# test
+time.sleep(1)
+motor.write("9\n".encode())
+time.sleep(1)
+motor.write("0\n".encode())
 
 # Waiting on launch pad measure acceleration to detect launch with
 while True :
@@ -108,6 +115,7 @@ while True :
     acc = imu.get_accel_data()
     gyr = imu.get_gyro_data()
 
+
     # store and overwrite num_data_pts of data
     launch_data.append([acc, gyr])
     if len(launch_data) > num_data_pts :
@@ -116,6 +124,8 @@ while True :
     # check threshhold against vertical acceleration data
     if acc[index_vert_acc] >= g_thresh :
         events.log('\n-----LAUNCH-----\n')     # log launch event
+        print("launch!!!")
+        depFile.log('--------fucking lunch---------')
         break
 
 t_launch = time.time()
@@ -147,41 +157,55 @@ for i in range(0, t_end*HZ) :
     sensors.log([acc, gyr])
 
     # write deployment to motor
-    val_write = deployment()
-    motor.write(round(val_write))
+    message = str(int(deployment()))
+    print message
+    depFile.log(message)
+    motor.write(message.encode())
     
     # 'string' +'\n' .encode()
     
     # detect MECO as point when a is only gravity and drag or as the expected burn time
     if not MECO :
-        if (a+1) <= -buffer_acc or t_flight >= t_burn :
+        if (acc[index_vert_acc]+1) <= -buffer_acc or t_flight >= t_burn :
             events.log("\n-----MECO-----\n")
             sensors.log("\n-----MECO-----\n")
-            
-            MECO = True   
+            depFile.log("\n-----MECO-----\n")
+            print "MECO!"
+             
+            MECO= True   
             continue
 
 
     # use altimeter data to detect apogee
     alt.read()
     z = alt.getAltitude()
+    sensors.log("Altitude:" + str(z))
 
     # detect APOGEE with altitude or precalculated time
     if MECO and not Apogee :
         if z >= mile or t_flight >= t_apogee :
             events.log("\n-----APOGEE-----\n")
             sensors.log("\n-----APOGEE-----\n")
-            
+            depFile.log("\n-----APOGEE-----\n")
+            print "APOGEE!"
+
+            print("the deployment array fuckin is: ")
+            print(depl_arr)
+            depFile.log("\n ---------DEPLOYMENT FUCKIN ARRAY IS: -----------\n")
+            depFile.log(depl_arr)
             Apogee = True 
             continue    # continue to record data during descent
 
 
+time.sleep(5)
+print("the deployment array fuckin is: ")
+print(depl_arr)
+
+# close serial communication with moto driver
+motor.close()
 
 # closing all the files
 sensors.close()
 events.close()
-
-# close serial communication with motor driver
-motor.close()
 
 exit(0)

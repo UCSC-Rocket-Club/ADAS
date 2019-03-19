@@ -7,12 +7,26 @@ import time
 class IMU:
     power_mgmt_1 = 0x6b
     power_mgmt_2 = 0x6c
+    ACCEL_CONFIG = 0x1C
+
+
+    ACCEL_RANGE_2G = 0x00
+    ACCEL_RANGE_4G = 0x08
+    ACCEL_RANGE_8G = 0x10
+    ACCEL_RANGE_16G = 0x18
+    
+    ACCEL_SCALE_2G = 16384.0
+    ACCEL_SCALE_4G = 8192.0
+    ACCEL_SCALE_8G = 4096.0
+    ACCEL_SCALE_16G = 2048.0
 
     bus = smbus.SMBus(1)
     address = 0x68
 
     # Activate to be able to address the module
     bus.write_byte_data(address, power_mgmt_1, 0)
+    bus.write_byte_data(address, ACCEL_CONFIG, 0X00)
+    bus.write_byte_data(address, ACCEL_CONFIG, ACCEL_RANGE_8G)
 
     def read_byte(self, reg):
         return bus.read_byte_data(self.address, reg)
@@ -53,8 +67,9 @@ class IMU:
 
     # Returns a list of 3 values for accelerometer [x,y,z] in gs
     def get_accel_data(self):
-        accelerometer_xout = self.read_word_2c(0x3b) / 16384.0
-        accelerometer_yout = self.read_word_2c(0x3d) / 16384.0 
-        accelerometer_zout = self.read_word_2c(0x3f) / 16384.0
+        accelScaleShit = self.ACCEL_SCALE_8G
+        accelerometer_xout = self.read_word_2c(0x3b) / accelScaleShit
+        accelerometer_yout = self.read_word_2c(0x3d) / accelScaleShit
+        accelerometer_zout = self.read_word_2c(0x3f) / accelScaleShit
 
         return [accelerometer_xout, accelerometer_yout, accelerometer_zout] 

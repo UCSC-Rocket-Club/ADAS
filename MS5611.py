@@ -66,18 +66,16 @@ class MS5611:
     def read(self):
         ## Get raw pressure
         self.bus.write_byte(self.i2c, 0x48)
-        time.sleep(0.05)
+        time.sleep(0.015)
 
         D1 = self.bus.read_i2c_block_data(self.i2c, 0x00)
         D1 = D1[0] * 65536 + D1[1] * 256.0 + D1[2]
-        time.sleep(0.05)
 
         ## Get raw temperature
         self.bus.write_byte(self.i2c, 0x58)
-        time.sleep(0.05)
+        time.sleep(0.015)
         D2 = self.bus.read_i2c_block_data(self.i2c, 0x00)
         D2 = D2[0] * 65536 + D2[1] * 256.0 + D2[2]
-        time.sleep(0.05)
 
         
         ## Read Constants from Sensor
@@ -87,7 +85,7 @@ class MS5611:
             C1 = self.bus.read_i2c_block_data(self.i2c, 0xA2) #Pressure Sensitivity
             C1 = C1[0] * 256.0 + C1[1]
             self.C1 = C1
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if hasattr(self, 'C2'):
             C2 = self.C2
@@ -95,7 +93,7 @@ class MS5611:
             C2 = self.bus.read_i2c_block_data(self.i2c, 0xA4) #Pressure Offset
             C2 = C2[0] * 256.0 + C2[1]
             self.C2 = C2
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if hasattr(self, 'C3'):
             C3 = self.C3
@@ -103,7 +101,7 @@ class MS5611:
             C3 = self.bus.read_i2c_block_data(self.i2c, 0xA6) #Temperature coefficient of pressure sensitivity
             C3 = C3[0] * 256.0 + C3[1]
             self.C3 = C3
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if hasattr(self, 'C4'):
             C4 = self.C4
@@ -111,7 +109,7 @@ class MS5611:
             C4 = self.bus.read_i2c_block_data(self.i2c, 0xA8) #Temperature coefficient of pressure offset
             C4 = C4[0] * 256.0 + C4[1]
             self.C4 = C4
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if hasattr(self, 'C5'):
             C5 = self.C5
@@ -119,7 +117,7 @@ class MS5611:
             C5 = self.bus.read_i2c_block_data(self.i2c, 0xAA) #Reference temperature
             C5 = C5[0] * 256.0 + C5[1]
             self.C5 = C5
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if hasattr(self, 'C6'):
             C6 = self.C6
