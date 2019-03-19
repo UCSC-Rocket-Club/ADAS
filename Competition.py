@@ -7,7 +7,7 @@ import datetime
 import serial
 from Deployment import StepDeployment
 from gyroscope import IMU
-# from MS5611 import MS5611
+from MS5611 import MS5611
 
 
 class Data_Log :
@@ -85,7 +85,7 @@ launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
 
-# speaker = serial.Serial('/dev/ttyS0', 115200)
+speaker = serial.Serial('/dev/ttyS0', 115200)
 
 # print("testing out speaker")
 # time.sleep(1)
