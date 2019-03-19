@@ -95,10 +95,12 @@ launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
 # test
+print("testing out motor")
 time.sleep(1)
-motor.write("9\n".encode())
+motor.write("9".encode())
 time.sleep(1)
-motor.write("0\n".encode())
+motor.write("0".encode())
+print("motor shoulve moved")
 
 # Waiting on launch pad measure acceleration to detect launch with
 while True :
