@@ -85,7 +85,7 @@ launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
 
-# speaker = serial.Serial('/dev/ttyS0', 115200)
+speaker = serial.Serial('/dev/ttyS0', 115200)
 
 # print("testing out speaker")
 # time.sleep(1)
@@ -95,7 +95,6 @@ num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 # print("speaker should speak")
 
 
-# speaker.write()
 
 
 # Waiting on launch pad measure acceleration to detect launch with
@@ -135,7 +134,7 @@ t_launch = time.time()
 for i in range(num_data_pts):
     sensors.log(launch_data[i])
 
-# speaker.write()
+speaker.write('l'.encode())
 
 
 sensors.log("\n-----IN AIR-----\n")
@@ -175,7 +174,7 @@ for i in range(0, t_end*HZ) :
              
             MECO = True  
 
-            # speaker.write() 
+            speaker.write('m'.encode()) 
             continue
 
 
@@ -191,7 +190,7 @@ for i in range(0, t_end*HZ) :
 
             Apogee = True 
 
-            # speaker.write()
+            speaker.write('a'.encode())
             continue    # continue to record data during descent
 
 
