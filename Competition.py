@@ -7,7 +7,7 @@ import datetime
 import serial
 from Deployment import StepDeployment
 from gyroscope import IMU
-# from MS5611 import MS5611
+from MS5611 import MS5611
 
 
 class Data_Log :
@@ -91,10 +91,11 @@ speaker = serial.Serial('/dev/ttyS0', 115200)
 # time.sleep(1)
 # speaker.write("9".encode())
 # time.sleep(1)
-# speaker.write("0".encode())
+
 # print("speaker should speak")
 
 
+# speaker.write()
 
 
 # Waiting on launch pad measure acceleration to detect launch with
@@ -114,7 +115,6 @@ while True :
     alt.read()
     z = alt.getAltitude()
 
-    print([acc, gyr, z])
 
     # store and overwrite num_data_pts of data
     launch_data.append([acc, gyr, z])
@@ -127,17 +127,16 @@ while True :
         sensors.log('\n-----LAUNCH-----\n')     # log launch event
         depFile.log('\n-----LAUNCH-----\n')     # log launch event
         print("launch!!!")
+        speaker.write("l".encode())
         break
 
 t_launch = time.time()
-
-print(launch_data)
 
 # store the data at launch (the most recent)
 for i in range(num_data_pts):
     sensors.log(launch_data[i])
 
-# speaker.write('l'.encode())
+# speaker.write()
 
 
 sensors.log("\n-----IN AIR-----\n")
@@ -174,10 +173,11 @@ for i in range(0, t_end*HZ) :
             sensors.log("\n-----MECO-----\n")
             depFile.log("\n-----MECO-----\n")
             print "MECO!"
+            speaker.write("m".encode())
              
             MECO = True  
 
-            # speaker.write('m'.encode()) 
+            # speaker.write() 
             continue
 
 
@@ -190,10 +190,11 @@ for i in range(0, t_end*HZ) :
             sensors.log("\n-----APOGEE-----\n")
             depFile.log("\n-----APOGEE-----\n")
             print "APOGEE!"
+            speaker.write("a".encode())
 
             Apogee = True 
 
-            # speaker.write('a'.encode())
+            # speaker.write()
             continue    # continue to record data during descent
 
 
@@ -203,6 +204,8 @@ time.sleep(5)
 # closing all the files
 # sensors.close()
 events.close()
+
+speaker.write("d".encode())
 
 # speaker.write()
 
