@@ -114,6 +114,7 @@ while True :
     alt.read()
     z = alt.getAltitude()
 
+    print([acc, gyr, z])
 
     # store and overwrite num_data_pts of data
     launch_data.append([acc, gyr, z])
@@ -130,11 +131,13 @@ while True :
 
 t_launch = time.time()
 
+print(launch_data)
+
 # store the data at launch (the most recent)
 for i in range(num_data_pts):
     sensors.log(launch_data[i])
 
-speaker.write('l'.encode())
+# speaker.write('l'.encode())
 
 
 sensors.log("\n-----IN AIR-----\n")
@@ -174,7 +177,7 @@ for i in range(0, t_end*HZ) :
              
             MECO = True  
 
-            speaker.write('m'.encode()) 
+            # speaker.write('m'.encode()) 
             continue
 
 
@@ -190,7 +193,7 @@ for i in range(0, t_end*HZ) :
 
             Apogee = True 
 
-            speaker.write('a'.encode())
+            # speaker.write('a'.encode())
             continue    # continue to record data during descent
 
 
