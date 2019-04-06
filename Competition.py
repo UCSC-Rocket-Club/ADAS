@@ -14,7 +14,7 @@ class Data_Log :
     def __init__ (self, fname, header='') :
         self.fname = fname
         self.file = open(fname, "a")
-        self.file.write(header)
+        self.file.write("{}\n".format(header))
 
     # Saves a string and timestamp (type string) to a CSV (f_path) in following format:
     # string, timestamp
@@ -23,7 +23,7 @@ class Data_Log :
         timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')
         self.file.write("{},{}\n".format(timestamp, data))
 
-    def close(self):
+    def close (self):
         self.file.close()
 
 
@@ -48,12 +48,12 @@ dt = 1. / HZ        # [s] expecting motor to operate at 25 Hz
 t_burn = 2.49       # [s] expected time for MECO
 t_start = 1.        # [s] when to start deployment after MECO
 t_apogee = 17.74    # [s] expected time to reach apogee (actually 11.9 for J420)
-t_end = 90          # [s] max time that rocket should be in air
+t_end = 20          # [s] max time that rocket should be in air
 
 
 # define near-zero buffers for detection of launch, MECO, and apogee
 buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
-g_thresh = 2      # [Gs] threshhold to detect launch (expect max of 10)
+g_thresh = 2        # [Gs] threshhold to detect launch (expect max of 10)
 mile = 1609.34      # [m] 1 mile
 
 
@@ -66,6 +66,8 @@ Apogee = False
 sensors = Data_Log('/home/pi/sensors.csv', 'Acc, Gyr, Alt')
 events = Data_Log('/home/pi/events.csv')
 depFile = Data_Log('/home/pi/deployment.csv')
+
+sensors.log('wtf ADAS why')
 
 
 
@@ -81,6 +83,19 @@ alt = MS5611(i2c=0x77)
 # want to store (some) data before launch is detected
 launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
+
+
+# speaker = serial.Serial('/dev/ttyS0', 115200)
+
+# print("testing out speaker")
+# time.sleep(1)
+# speaker.write("9".encode())
+# time.sleep(1)
+# speaker.write("0".encode())
+# print("speaker should speak")
+
+
+# speaker.write()
 
 
 # Waiting on launch pad measure acceleration to detect launch with
@@ -108,9 +123,10 @@ while True :
 
     # check threshhold against vertical acceleration data
     if acc[index_vert_acc] >= g_thresh :
-        events.log('\n-----LAUNCH-----\n')     # log launch event
-        print("launch!!!")
+        events.log('\n-----LAUNCH-----\n')      # log launch event
+        sensors.log('\n-----LAUNCH-----\n')     # log launch event
         depFile.log('\n-----LAUNCH-----\n')     # log launch event
+        print("launch!!!")
         break
 
 t_launch = time.time()
@@ -118,6 +134,8 @@ t_launch = time.time()
 # store the data at launch (the most recent)
 for i in range(num_data_pts):
     sensors.log(launch_data[i])
+
+# speaker.write()
 
 
 sensors.log("\n-----IN AIR-----\n")
@@ -155,7 +173,9 @@ for i in range(0, t_end*HZ) :
             depFile.log("\n-----MECO-----\n")
             print "MECO!"
              
-            MECO = True   
+            MECO = True  
+
+            # speaker.write() 
             continue
 
 
@@ -170,6 +190,8 @@ for i in range(0, t_end*HZ) :
             print "APOGEE!"
 
             Apogee = True 
+
+            # speaker.write()
             continue    # continue to record data during descent
 
 
@@ -177,7 +199,11 @@ time.sleep(5)
 
 
 # closing all the files
-sensors.close()
+# sensors.close()
 events.close()
+
+# speaker.write()
+
+speaker.close()
 
 exit(0)
