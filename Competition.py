@@ -11,9 +11,10 @@ from gyroscope import IMU
 
 
 class Data_Log :
-    def __init__ (self, fname) :
+    def __init__ (self, fname, header='') :
         self.fname = fname
         self.file = open(fname, "a")
+        self.file.write(header)
 
     # Saves a string and timestamp (type string) to a CSV (f_path) in following format:
     # string, timestamp
@@ -62,9 +63,11 @@ Apogee = False
 
 
 # create opjects for logging data, arg is log filename
-sensors = Data_Log('/home/pi/sensors.csv')
+sensors = Data_Log('/home/pi/sensors.csv', 'Acc, Gyr, Alt')
 events = Data_Log('/home/pi/events.csv')
 depFile = Data_Log('/home/pi/deployment.csv')
+
+
 
 # Setting up IMU
 imu = IMU()
@@ -94,10 +97,12 @@ while True :
     # read data from IMU
     acc = imu.get_accel_data()
     gyr = imu.get_gyro_data()
+    alt.read()
+    z = alt.getAltitude()
 
 
     # store and overwrite num_data_pts of data
-    launch_data.append([acc, gyr])
+    launch_data.append([acc, gyr, z])
     if len(launch_data) > num_data_pts :
         launch_data.pop(0)
 
@@ -132,9 +137,14 @@ for i in range(0, t_end*HZ) :
     # get acceleration and gyroscope data
     acc = imu.get_accel_data()
     gyr = imu.get_gyro_data()
+
+    # use altimeter data to detect apogee
+    alt.read()
+    z = alt.getAltitude()
+    # sensors.log("Altitude:" + str(z))
     
     # write sensor data to file
-    sensors.log([acc, gyr])
+    sensors.log([acc, gyr, z])
 
     
     # detect MECO as point when a is only gravity and drag or as the expected burn time
@@ -149,10 +159,7 @@ for i in range(0, t_end*HZ) :
             continue
 
 
-    # use altimeter data to detect apogee
-    alt.read()
-    z = alt.getAltitude()
-    sensors.log("Altitude:" + str(z))
+
 
     # detect APOGEE with altitude or precalculated time
     if MECO and not Apogee :
