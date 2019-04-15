@@ -9,37 +9,46 @@
 // initialize motor controller for adas
 MotorController adas(ENCODERA, ENCODERB, MOTORPWM, MOTORDIR, MOTORGND);
 
+void getNumber();
+String inputNumber = "";
+
 
 bool shit, retract = false;
-int projectedPosition;
+int projectedPosition = 0
+;
 int temp, pos;
 void setup(){
-  Serial.begin(9600);
-  Serial.println("shit fuck");
+  Serial1.begin(115200);
+  Serial1.println("shit fuck");
+  inputNumber.reserve(200);
   temp = 0;
   pos = 0;
 }
 
 
 void loop() {
+  getNumber();
 
   if(shit) {
-    Serial.write("the fucking projected pos is ");
-    Serial.println(projectedPosition);
+    Serial1.write("the fucking projected pos is ");
+    Serial1.println(projectedPosition);
+//    delay(500);
+    adas.attemptPosition(projectedPosition * 100);
+    
     shit = false;
   }
   if (retract){
+    
     // fully retract motor
     adas.motorDone();
     exit(0);
   }
   else{
-    temp = adas.position();
-    if(temp != pos){
-      Serial.println(temp);
-      pos = temp;
-    }
-    adas.attemptPosition(projectedPosition);
+//    temp = adas.position();
+//    if(temp != pos){
+//      Serial1.println(temp);
+//      pos = temp;
+//    }
   }
 }
 
@@ -58,29 +67,41 @@ void loop() {
   credit to FUCKING CE12 FOR HOW TO PARSE AN INT IN C COMMUNICATION WHO FUCKING KNEW THIS SHIT
   WAS GOING TO END UP BEING USEFUL HOLY FUCK MAX DUNNEEEEEEEE
 */
-void serialEvent() {
-  int temp, number = 0;
-  while (Serial.available() > 0) {
+void getNumber() {
+  delay(5);
+  char var;
+  if (Serial1.available() > 0) {
+    while(Serial1.available()){
+      var = (char) Serial1.read();
+    }
+    //adas.stopMotor();
     // get the new byte:
-    char inChar = (char)Serial.read();
-    if(isdigit(inChar)){
-      //Serial.println("its a char!");
-      temp = inChar - '0';
-      number *= 10; // shift a tens place to add in new number
-      number += temp; // add in temp number
-      //Serial.println(number);
+//    Serial1.println("hello");
+//    Serial1.flush();
+//    if(isdigit(inputNumber[0])){
+//      int temp, number = 0;
+//      for(int i = 0; inputNumber[i] != '\n'; i++){
+//        temp = inputNumber[i] - '0';
+//        number *= 10;
+//        number += temp;
+//      }
+//      Serial1.println("got");
+      if (var == 'e'){
+        retract = true;
+        return;  
+      }
+      projectedPosition = var - '0';
+      shit=true;
+      return;
     }
     
-    // if the incoming character is a newline
-    // update the global projected position
-    else if (inChar == '\n') {
-      shit = true;
-      projectedPosition = number;
-    }
+//    // if the incoming character is a newline
+//    // update the global projected position
+//    else 
     
     // signify the end of the program and stop everything
-    else if (inChar == 'e'){
-      retract = true;
-    }
-  }
+//    else if (inputNumber[0] == 'e'){
+//      
+//    }
+//  }
 }
