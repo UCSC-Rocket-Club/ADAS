@@ -1,6 +1,7 @@
+# Competiton Launch Code for ADAS
 
-# Code that obtains and logs data and communicates deployment percentages for flight
-# To be implemented on March 16 by UCSC Rocket Team 2019
+# Code that obtains and logs data and for flight and controls audio feedback
+# To be implemented on April 7 by UCSC Rocket Team 2019
 
 import time
 import datetime
@@ -48,12 +49,12 @@ dt = 1. / HZ        # [s] expecting motor to operate at 25 Hz
 t_burn = 2.49       # [s] expected time for MECO
 t_start = 1.        # [s] when to start deployment after MECO
 t_apogee = 17.74    # [s] expected time to reach apogee (actually 11.9 for J420)
-t_end = 20          # [s] max time that rocket should be in air
+t_end = 90          # [s] max time that rocket should be in air
 
 
 # define near-zero buffers for detection of launch, MECO, and apogee
 buffer_acc = .2     # [m/s^2] approx acc due to drag at MECO instance 
-g_thresh = 2        # [Gs] threshhold to detect launch (expect max of 10)
+g_thresh = 7.7        # [Gs] threshhold to detect launch (expect max of 10)
 mile = 1609.34      # [m] 1 mile
 
 
@@ -67,10 +68,6 @@ sensors = Data_Log('/home/pi/sensors.csv', 'Acc, Gyr, Alt')
 events = Data_Log('/home/pi/events.csv')
 depFile = Data_Log('/home/pi/deployment.csv')
 
-sensors.log('wtf ADAS why')
-
-
-
 # Setting up IMU
 imu = IMU()
 index_vert_acc = 1      # index of vertical acceleration, read in [Gs]
@@ -78,25 +75,13 @@ index_vert_acc = 1      # index of vertical acceleration, read in [Gs]
 # Setting up Altimeter
 alt = MS5611(i2c=0x77)
 
-
-
 # want to store (some) data before launch is detected
 launch_data = []    # holds pre-launch data
 num_data_pts = 20   # ~t(g_thresh)*HZ points to catch data pre-launch detection
 
 
 speaker = serial.Serial('/dev/ttyS0', 115200)
-
-# print("testing out speaker")
-# time.sleep(1)
-# speaker.write("9".encode())
-# time.sleep(1)
-# speaker.write("0".encode())
-# print("speaker should speak")
-
-
-# speaker.write()
-
+speaker.write("p".encode())
 
 # Waiting on launch pad measure acceleration to detect launch with
 while True :
@@ -127,6 +112,7 @@ while True :
         sensors.log('\n-----LAUNCH-----\n')     # log launch event
         depFile.log('\n-----LAUNCH-----\n')     # log launch event
         print("launch!!!")
+        speaker.write("l".encode())
         break
 
 t_launch = time.time()
@@ -172,10 +158,9 @@ for i in range(0, t_end*HZ) :
             sensors.log("\n-----MECO-----\n")
             depFile.log("\n-----MECO-----\n")
             print "MECO!"
+            speaker.write("m".encode())
              
             MECO = True  
-
-            # speaker.write() 
             continue
 
 
@@ -188,10 +173,9 @@ for i in range(0, t_end*HZ) :
             sensors.log("\n-----APOGEE-----\n")
             depFile.log("\n-----APOGEE-----\n")
             print "APOGEE!"
+            speaker.write("a".encode())
 
             Apogee = True 
-
-            # speaker.write()
             continue    # continue to record data during descent
 
 
@@ -199,11 +183,11 @@ time.sleep(5)
 
 
 # closing all the files
-# sensors.close()
+sensors.close()
 events.close()
 
-# speaker.write()
-
+speaker.write("d".encode())
 speaker.close()
+
 
 exit(0)
