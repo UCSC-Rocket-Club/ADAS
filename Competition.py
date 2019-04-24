@@ -64,7 +64,7 @@ Apogee = False
 
 
 # create opjects for logging data, arg is log filename
-sensors = Data_Log('/home/pi/sensors.csv', 'Acc, Gyr, Alt')
+sensors = Data_Log('/home/pi/sensors.csv', 'AccX, AccY, AccZ, GyrX, GyrY, GyrZ, Alt')
 events = Data_Log('/home/pi/events.csv')
 depFile = Data_Log('/home/pi/deployment.csv')
 
